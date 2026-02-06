@@ -1,5 +1,5 @@
-import Image from "next/image";
-import ArticleLink from "@/app/_components/ArticleLink"; // Import your custom link
+import SanityImage from "@/app/_components/SanityImage"; // Import your new component
+import ArticleLink from "@/app/_components/ArticleLink";
 import { NewsCardProps } from "@/types";
 
 interface NewsSectionProps {
@@ -16,7 +16,6 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-8">
-      {/* Section Header */}
       <div className="flex items-center gap-4 mb-6">
         <h2 className="text-2xl font-black uppercase whitespace-nowrap">
           {title}
@@ -27,15 +26,15 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* LEFT SIDE: Main & Sub-features */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          {/* Large Hero */}
           <ArticleLink
             categorySlug={mainPost.category}
             slug={mainPost.slug}
             className="group relative block"
           >
             <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-slate-100">
-              <Image
-                src={mainPost.image}
+              {/* Swapped Image for SanityImage */}
+              <SanityImage
+                asset={mainPost.image}
                 alt={mainPost.title}
                 fill
                 priority
@@ -55,7 +54,6 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
             )}
           </ArticleLink>
 
-          {/* Two Sub-Features */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {subFeatures.map((post) => (
               <ArticleLink
@@ -65,8 +63,9 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
                 className="group"
               >
                 <div className="relative aspect-video overflow-hidden rounded-lg mb-3 bg-slate-100">
-                  <Image
-                    src={post.image}
+                  {/* Swapped Image for SanityImage */}
+                  <SanityImage
+                    asset={post.image}
                     alt={post.title}
                     fill
                     className="object-cover"
@@ -109,8 +108,9 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
                   </p>
                 </div>
                 <div className="relative w-24 h-18 flex-shrink-0 overflow-hidden rounded-md bg-slate-100">
-                  <Image
-                    src={post.image}
+                  {/* Swapped Image for SanityImage */}
+                  <SanityImage
+                    asset={post.image}
                     alt={post.title}
                     fill
                     className="object-cover"

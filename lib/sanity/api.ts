@@ -73,7 +73,7 @@ export const QUERIES = {
          _id, 
          title, 
          "slug": slug.current, 
-         "image": mainImage, // Mapping helper expects 'image' or 'mainImage'
+          mainImage,
          publishedAt, 
          excerpt, 
          "category": category->slug.current // CRITICAL: This was missing
