@@ -1,9 +1,9 @@
 import { fetchArticleBySlug, fetchRelatedArticles } from "@/lib/sanity/api";
 import CustomPortableText from "@/app/_components/PortableText";
-import SanityImage from "@/app/_components/SanityImage"; // Centralized component
-import ArticleLink from "@/app/_components/ArticleLink"; // Centralized links
+import SanityImage from "@/app/_components/SanityImage";
+import ArticleLink from "@/app/_components/ArticleLink";
 import { notFound } from "next/navigation";
-import { NewsCardProps } from "@/types";
+import { ArticleDetail, NewsCardProps } from "@/types";
 import { Metadata } from "next";
 import { urlFor } from "@/lib/sanity/image";
 import Link from "next/link";
@@ -13,7 +13,6 @@ interface PageParams {
   slug: string;
 }
 
-// Helper to resolve Sanity Image objects to URLs on the Server
 const resolveImageUrl = (asset: any) => {
   if (!asset) return "/fallback-news.jpg";
   try {
@@ -29,8 +28,7 @@ export async function generateMetadata({
   params: Promise<PageParams>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = await fetchArticleBySlug(slug);
-
+  const article: ArticleDetail | null = await fetchArticleBySlug(slug);
   if (!article) return { title: "Article Not Found" };
 
   const imageUrl = resolveImageUrl(article.mainImage);
@@ -38,16 +36,7 @@ export async function generateMetadata({
   return {
     title: article.title,
     description: article.excerpt,
-    openGraph: {
-      type: "article",
-      title: article.title,
-      description: article.excerpt,
-      images: [imageUrl],
-    },
-    twitter: {
-      card: "summary_large_image",
-      images: [imageUrl],
-    },
+    openGraph: { images: [imageUrl] },
   };
 }
 
@@ -57,17 +46,15 @@ export default async function ArticlePage({
   params: Promise<PageParams>;
 }) {
   const { slug } = await params;
-  const article = await fetchArticleBySlug(slug);
+  const article: ArticleDetail | null = await fetchArticleBySlug(slug);
 
   if (!article) notFound();
 
-  // Map related articles (fetchRelatedArticles should return raw Sanity data, we map it here)
   const relatedRaw = await fetchRelatedArticles(
     article.categorySlug,
     article._id,
   );
 
-  // Resolve image URLs on the server before passing to client components
   const mainImageUrl = resolveImageUrl(article.mainImage);
   const authorImageUrl = article.authorImage
     ? urlFor(article.authorImage).width(100).height(100).url()
@@ -75,7 +62,6 @@ export default async function ArticlePage({
 
   return (
     <article className="max-w-7xl mx-auto px-4 py-8 md:py-16">
-      {/* Header Section */}
       <header className="max-w-4xl mb-10">
         <Link
           href={`/${article.categorySlug}`}
@@ -106,10 +92,7 @@ export default async function ArticlePage({
             <p className="text-slate-500 uppercase text-[10px] font-bold tracking-tighter">
               Published{" "}
               {new Date(article.publishedAt).toLocaleDateString("en-KE", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
+                dateStyle: "full",
               })}
             </p>
           </div>
@@ -117,43 +100,39 @@ export default async function ArticlePage({
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* Main Body (8 Cols) */}
         <div className="lg:col-span-8">
-          <div className="relative aspect-video w-full mb-10 overflow-hidden rounded-2xl shadow-2xl bg-slate-100">
-            <SanityImage
-              asset={mainImageUrl}
-              alt={article.title}
-              fill
-              priority
-              className="object-cover"
-            />
-          </div>
+          {/* Featured Image with Caption & Source */}
+          <figure className="mb-10">
+            <div className="relative aspect-video w-full overflow-hidden rounded-2xl shadow-2xl bg-slate-100">
+              <SanityImage
+                asset={mainImageUrl}
+                alt={article.title}
+                fill
+                priority
+                className="object-cover"
+              />
+            </div>
+            {(article.mainImageCaption || article.mainImageSource) && (
+              <figcaption className="mt-4 text-sm text-slate-500 border-l-4 border-pd-red pl-4 italic">
+                {article.mainImageCaption}
+                {article.mainImageSource && (
+                  <span className="block text-[10px] uppercase font-black not-italic text-slate-400 mt-1">
+                    Credit: {article.mainImageSource}
+                  </span>
+                )}
+              </figcaption>
+            )}
+          </figure>
 
           <div className="prose prose-lg prose-slate max-w-none prose-img:rounded-xl">
             <CustomPortableText value={article.body} />
           </div>
-
-          {/* Tags */}
-          {article.tags && (
-            <div className="mt-12 pt-8 border-t flex flex-wrap gap-2">
-              {article.tags.map((tag: { title: string; slug: string }) => (
-                <Link
-                  key={tag.slug}
-                  href={`/topic/${tag.slug}`}
-                  className="bg-slate-100 text-slate-600 px-3 py-1 rounded-md text-xs font-bold uppercase tracking-tight hover:bg-pd-red hover:text-white transition-colors"
-                >
-                  #{tag.title}
-                </Link>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Sidebar (4 Cols) */}
         <aside className="lg:col-span-4 space-y-12">
           <div className="sticky top-28">
             <h4 className="text-xl font-black border-b-4 border-pd-red w-fit pb-1 mb-6 uppercase">
-              Related Stories
+              Related
             </h4>
             <div className="flex flex-col gap-6">
               {relatedRaw.map((post: NewsCardProps) => (

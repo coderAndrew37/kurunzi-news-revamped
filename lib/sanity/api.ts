@@ -25,7 +25,9 @@ export const QUERIES = {
     "categorySlug": category->slug.current,
     "authorName": author->name,
     "authorImage": author->image,
-    "authorSlug": author->slug.current
+    "authorSlug": author->slug.current,
+    "mainImageCaption": mainImage.caption,
+  "mainImageSource": mainImage.source,
   }
 `,
 
