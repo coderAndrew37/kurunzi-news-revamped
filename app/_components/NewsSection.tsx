@@ -1,13 +1,15 @@
-import SanityImage from "@/app/_components/SanityImage"; // Import your new component
+import SanityImage from "@/app/_components/SanityImage";
 import ArticleLink from "@/app/_components/ArticleLink";
 import { NewsCardProps } from "@/types";
+import Link from "next/link";
 
 interface NewsSectionProps {
   title: string;
+  slug: string; // Passed from the parent query
   posts: NewsCardProps[];
 }
 
-export default function NewsSection({ title, posts }: NewsSectionProps) {
+export default function NewsSection({ title, slug, posts }: NewsSectionProps) {
   if (!posts || posts.length === 0) return null;
 
   const mainPost = posts[0];
@@ -15,46 +17,60 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
   const sidebarPosts = posts.slice(3, 8);
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-4 mb-6">
-        <h2 className="text-2xl font-black uppercase whitespace-nowrap">
-          {title}
-        </h2>
-        <div className="h-[3px] w-full bg-pd-green" />
+    <section className="max-w-7xl mx-auto px-4 py-12 border-b border-slate-100 last:border-0">
+      {/* Section Header with People Daily Style Accent */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4 flex-1">
+          <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">
+            {title}
+          </h2>
+          <div className="h-[4px] flex-1 bg-pd-red max-w-[100px]" />
+        </div>
+        <Link
+          href={`/${slug || mainPost.category || "#"}`}
+          className="hidden md:block text-xs font-black uppercase tracking-widest text-slate-400 hover:text-pd-red transition-colors"
+        >
+          See All {title} →
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* LEFT SIDE: Main & Sub-features */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* LEFT CONTENT AREA (8 Columns) */}
+        <div className="lg:col-span-8 space-y-10">
+          {/* PRIMARY HERO STORY */}
           <ArticleLink
             categorySlug={mainPost.category}
             slug={mainPost.slug}
-            className="group relative block"
+            className="group block"
           >
-            <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-slate-100">
-              {/* Swapped Image for SanityImage */}
+            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100 shadow-sm">
               <SanityImage
                 asset={mainPost.image}
                 alt={mainPost.title}
                 fill
                 priority
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              <span className="absolute bottom-4 left-4 bg-pd-red text-white text-xs font-bold px-3 py-1 rounded shadow-lg uppercase">
-                {mainPost.category}
-              </span>
+              <div className="absolute top-4 left-4">
+                <span className="bg-pd-red text-white text-[10px] font-black px-3 py-1.5 rounded-sm uppercase tracking-widest shadow-xl">
+                  {mainPost.category}
+                </span>
+              </div>
             </div>
-            <h3 className="mt-4 text-2xl md:text-3xl font-bold leading-tight group-hover:text-pd-red transition-colors">
-              {mainPost.title}
-            </h3>
-            {mainPost.excerpt && (
-              <p className="mt-2 text-slate-600 line-clamp-2 text-sm md:text-base">
-                {mainPost.excerpt}
-              </p>
-            )}
+            <div className="mt-6 space-y-3">
+              <h3 className="text-3xl md:text-4xl font-black leading-[1.1] text-slate-900 group-hover:text-pd-red transition-colors">
+                {mainPost.title}
+              </h3>
+              {mainPost.excerpt && (
+                <p className="text-slate-600 line-clamp-3 font-serif text-lg leading-relaxed">
+                  {mainPost.excerpt}
+                </p>
+              )}
+            </div>
           </ArticleLink>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* SUB-FEATURE GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-100">
             {subFeatures.map((post) => (
               <ArticleLink
                 key={post.slug}
@@ -62,19 +78,15 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
                 slug={post.slug}
                 className="group"
               >
-                <div className="relative aspect-video overflow-hidden rounded-lg mb-3 bg-slate-100">
-                  {/* Swapped Image for SanityImage */}
+                <div className="relative aspect-[16/10] overflow-hidden rounded-xl mb-4 bg-slate-100">
                   <SanityImage
                     asset={post.image}
                     alt={post.title}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <span className="absolute bottom-2 left-2 bg-pd-red text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                    {post.category}
-                  </span>
                 </div>
-                <h4 className="text-lg font-bold leading-snug group-hover:text-pd-red transition-colors">
+                <h4 className="text-xl font-bold leading-snug group-hover:text-pd-red transition-colors line-clamp-2">
                   {post.title}
                 </h4>
               </ArticleLink>
@@ -82,48 +94,49 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
           </div>
         </div>
 
-        {/* RIGHT SIDE: Sidebar List */}
-        <div className="lg:col-span-4 border-t lg:border-t-0 lg:border-l lg:pl-8 pt-6 lg:pt-0">
-          <div className="flex flex-col gap-5">
-            {sidebarPosts.map((post, idx) => (
-              <ArticleLink
-                key={post.slug}
-                categorySlug={post.category}
-                slug={post.slug}
-                className={`flex gap-4 pb-4 group ${
-                  idx !== sidebarPosts.length - 1
-                    ? "border-b border-slate-100"
-                    : ""
-                }`}
-              >
-                <div className="flex-1">
-                  <span className="text-pd-green text-[10px] font-bold uppercase tracking-wider">
-                    {post.category}
-                  </span>
-                  <h5 className="font-bold text-sm leading-tight group-hover:text-pd-red transition-colors mt-1 line-clamp-3">
-                    {post.title}
-                  </h5>
-                  <p className="text-[10px] text-slate-400 mt-2 font-medium">
-                    {post.date}
-                  </p>
-                </div>
-                <div className="relative w-24 h-18 flex-shrink-0 overflow-hidden rounded-md bg-slate-100">
-                  {/* Swapped Image for SanityImage */}
-                  <SanityImage
-                    asset={post.image}
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </ArticleLink>
-            ))}
+        {/* RIGHT SIDEBAR (4 Columns) */}
+        <aside className="lg:col-span-4">
+          <div className="bg-slate-50 rounded-2xl p-6 lg:sticky lg:top-24">
+            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-6 border-b pb-2">
+              Don't Miss
+            </h4>
+            <div className="flex flex-col gap-6">
+              {sidebarPosts.map((post, idx) => (
+                <ArticleLink
+                  key={post.slug}
+                  categorySlug={post.category}
+                  slug={post.slug}
+                  className="flex gap-4 group"
+                >
+                  <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+                    <SanityImage
+                      asset={post.image}
+                      alt={post.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <h5 className="font-bold text-sm leading-tight group-hover:text-pd-red transition-colors line-clamp-3 text-slate-900">
+                      {post.title}
+                    </h5>
+                    <span className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-tighter">
+                      {post.date}
+                    </span>
+                  </div>
+                </ArticleLink>
+              ))}
+            </div>
 
-            <button className="mt-4 w-full md:w-fit bg-pd-red text-white font-black text-sm py-3 px-8 rounded transition-all active:scale-95 hover:bg-black uppercase tracking-tighter">
-              CLICK FOR MORE {title}
-            </button>
+            {/* Redesigned "More" Button */}
+            <Link
+              href={`/${slug || mainPost.category || "#"}`}
+              className="mt-8 flex items-center justify-center w-full bg-slate-900 text-white font-black text-xs py-4 px-6 rounded-xl transition-all hover:bg-pd-red uppercase tracking-widest shadow-lg active:scale-95"
+            >
+              More from {title}
+            </Link>
           </div>
-        </div>
+        </aside>
       </div>
     </section>
   );

@@ -20,14 +20,26 @@ export const QUERIES = {
   getArticleBySlug: `
   *[_type == "post" && slug.current == $slug][0] {
     ...,
-    "slug": slug.current, // This overwrites the object with a string
+    "slug": slug.current,
     "categoryTitle": category->title,
     "categorySlug": category->slug.current,
     "authorName": author->name,
     "authorImage": author->image,
     "authorSlug": author->slug.current,
     "mainImageCaption": mainImage.caption,
-  "mainImageSource": mainImage.source,
+    "mainImageSource": mainImage.source,
+    tags[]-> { title, "slug": slug.current },
+    body[] {
+      ...,
+      _type == "inlineRelated" => {
+        "post": post-> {
+          title,
+          "slug": slug.current,
+          "categorySlug": category->slug.current,
+          mainImage
+        }
+      }
+    }
   }
 `,
 
@@ -128,13 +140,20 @@ export const QUERIES = {
 `,
 
   getPostsByTag: `
-    {
-      "posts": *[_type == "post" && $tag in tags] | order(publishedAt desc) [$start...$end] {
-        _id, title, "slug": slug.current, mainImage, publishedAt, excerpt, "categorySlug": category->slug.current, "categoryTitle": category->title
-      },
-      "total": count(*[_type == "post" && $tag in tags])
-    }
-  `,
+{
+  "posts": *[_type == "post" && $tag in tags[]->slug.current] | order(publishedAt desc) [$start...$end] {
+    _id, 
+    title, 
+    "slug": slug.current, 
+    mainImage, 
+    publishedAt, 
+    excerpt, 
+    "category": category->slug.current, 
+    "categoryTitle": category->title
+  },
+  "total": count(*[_type == "post" && $tag in tags[]->slug.current])
+}
+`,
 
   searchPosts: `*[_type == "post" && (title match $term || excerpt match $term || pt::text(body) match $term)] | order(publishedAt desc) {
     _id, title, "slug": slug.current, mainImage, publishedAt, excerpt, "categorySlug": category->slug.current
