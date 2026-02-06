@@ -1,14 +1,15 @@
+import "server-only";
 import { createClient } from "next-sanity";
 
-const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
+const projectId = process.env.SANITY_PROJECT_ID!;
+const dataset = process.env.SANITY_DATASET!;
 const apiVersion = "2024-01-01";
+const token = process.env.SANITY_API_READ_TOKEN!;
 
-export const client = createClient({
+export const sanityServerClient = createClient({
   projectId,
   dataset,
   apiVersion,
-  useCdn: false, // CDN usually doesn't work with private datasets/tokens
-  // The token is only available on the server
-  token: process.env.SANITY_API_READ_TOKEN,
+  useCdn: false, // CDN not allowed for private datasets
+  token, // REQUIRED
 });

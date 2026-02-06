@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Footer from "./_components/Footer";
 import Navbar from "./_components/Navbar";
-
+import { fetchNavCategories } from "@/lib/sanity/api";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,8 +22,15 @@ export const metadata: Metadata = {
     template: "%s | Kurunzi News",
     default: "Kurunzi News | Breaking News, Politics, and Business in Kenya",
   },
-  description: "Kurunzi News provides the latest verified news, political analysis, and business insights across Kenya and the East African region.",
-  keywords: ["Kenya News", "Breaking News Kenya", "Kurunzi News", "Politics Kenya", "Business Kenya"],
+  description:
+    "Kurunzi News provides the latest verified news, political analysis, and business insights across Kenya and the East African region.",
+  keywords: [
+    "Kenya News",
+    "Breaking News Kenya",
+    "Kurunzi News",
+    "Politics Kenya",
+    "Business Kenya",
+  ],
   authors: [{ name: "Kurunzi News Team" }],
   openGraph: {
     title: "Kurunzi News",
@@ -46,15 +53,15 @@ export const metadata: Metadata = {
     description: "Verified News from the heart of Kenya.",
     images: ["/og-image.jpg"],
   },
- alternates: {
-    canonical: 'https://kurunzinews.co.ke',
+  alternates: {
+    canonical: "https://kurunzinews.co.ke",
     types: {
-      'application/rss+xml': 'https://kurunzinews.co.ke/feed.xml',
+      "application/rss+xml": "https://kurunzinews.co.ke/feed.xml",
     },
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -63,20 +70,22 @@ export default function RootLayout({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NewsMediaOrganization",
-    "name": "Kurunzi News",
-    "url": "https://kurunzinews.co.ke",
-    "logo": "https://kurunzinews.co.ke/logo.png",
-    "sameAs": [
+    name: "Kurunzi News",
+    url: "https://kurunzinews.co.ke",
+    logo: "https://kurunzinews.co.ke/logo.png",
+    sameAs: [
       "https://facebook.com/kurunzinews",
       "https://twitter.com/kurunzinews",
-      "https://instagram.com/kurunzinews"
+      "https://instagram.com/kurunzinews",
     ],
-    "address": {
+    address: {
       "@type": "PostalAddress",
-      "addressLocality": "Nairobi",
-      "addressCountry": "KE"
-    }
+      addressLocality: "Nairobi",
+      addressCountry: "KE",
+    },
   };
+
+  const categories = await fetchNavCategories();
 
   return (
     <html lang="en">
@@ -86,11 +95,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen bg-slate-50`}>
-        <Navbar />
-        <main className="grow">
-          {children}
-        </main>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen bg-slate-50`}
+      >
+        <Navbar categories={categories} />
+        <main className="grow">{children}</main>
         <Footer />
       </body>
     </html>

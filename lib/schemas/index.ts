@@ -1,0 +1,48 @@
+import { z } from "zod";
+
+// 1. Setup Password Schema
+export const SetupPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain one uppercase letter")
+      .regex(/[0-9]/, "Password must contain one number"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+// 2. Writer Onboarding Schema
+export const OnboardingSchema = z.object({
+  full_name: z.string().min(2, "Full name is required"),
+  bio: z.string().max(500, "Bio must be under 500 characters").optional(),
+  avatar_url: z.string().url("Invalid image URL").optional().or(z.literal("")),
+});
+
+// 3. Article Workflow Schema (The most critical one)
+export const ArticleSchema = z.object({
+  title: z.string().min(5, "Title is too short").max(150),
+  excerpt: z.string().max(300).optional(),
+  category: z.enum(["politics", "tech", "lifestyle", "business"]),
+  // Tiptap content is JSONB, so we validate the root structure
+  content: z.object({
+    type: z.literal("doc"),
+    content: z.array(z.any()),
+  }),
+  tags: z.array(z.string()).max(10, "Maximum 10 tags allowed"),
+});
+
+export const LoginFormSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const InviteStaffSchema = z.object({
+  email: z.string().email("Please enter a valid work email"),
+  role: z.enum(["writer", "editor"], {
+    message: "Please select a valid role",
+  }),
+});

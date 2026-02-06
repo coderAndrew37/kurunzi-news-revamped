@@ -1,6 +1,5 @@
-// components/NewsSection.tsx
 import Image from "next/image";
-import Link from "next/link";
+import ArticleLink from "@/app/_components/ArticleLink"; // Import your custom link
 import { NewsCardProps } from "@/types";
 
 interface NewsSectionProps {
@@ -9,17 +8,15 @@ interface NewsSectionProps {
 }
 
 export default function NewsSection({ title, posts }: NewsSectionProps) {
-  // Guard clause for empty states
   if (!posts || posts.length === 0) return null;
 
-  // Split posts to match the PD layout (1 Hero, 2 Sub, 5 Sidebar)
   const mainPost = posts[0];
   const subFeatures = posts.slice(1, 3);
   const sidebarPosts = posts.slice(3, 8);
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-8">
-      {/* Section Header with PD Green Line */}
+      {/* Section Header */}
       <div className="flex items-center gap-4 mb-6">
         <h2 className="text-2xl font-black uppercase whitespace-nowrap">
           {title}
@@ -28,17 +25,20 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* LEFT SIDE: Main & Sub-features (8 Columns on Desktop) */}
+        {/* LEFT SIDE: Main & Sub-features */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          {/* Large Hero - Uses mapped 'slug' and 'image' directly */}
-          <Link href={`/news/${mainPost.slug}`} className="group relative block">
+          {/* Large Hero */}
+          <ArticleLink
+            categorySlug={mainPost.category}
+            slug={mainPost.slug}
+            className="group relative block"
+          >
             <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-slate-100">
               <Image
                 src={mainPost.image}
                 alt={mainPost.title}
                 fill
-                priority // Load the first hero image immediately
+                priority
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <span className="absolute bottom-4 left-4 bg-pd-red text-white text-xs font-bold px-3 py-1 rounded shadow-lg uppercase">
@@ -53,12 +53,17 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
                 {mainPost.excerpt}
               </p>
             )}
-          </Link>
+          </ArticleLink>
 
           {/* Two Sub-Features */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {subFeatures.map((post) => (
-              <Link key={post.slug} href={`/news/${post.slug}`} className="group">
+              <ArticleLink
+                key={post.slug}
+                categorySlug={post.category}
+                slug={post.slug}
+                className="group"
+              >
                 <div className="relative aspect-video overflow-hidden rounded-lg mb-3 bg-slate-100">
                   <Image
                     src={post.image}
@@ -73,20 +78,23 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
                 <h4 className="text-lg font-bold leading-snug group-hover:text-pd-red transition-colors">
                   {post.title}
                 </h4>
-              </Link>
+              </ArticleLink>
             ))}
           </div>
         </div>
 
-        {/* RIGHT SIDE: Sidebar List (4 Columns on Desktop) */}
+        {/* RIGHT SIDE: Sidebar List */}
         <div className="lg:col-span-4 border-t lg:border-t-0 lg:border-l lg:pl-8 pt-6 lg:pt-0">
           <div className="flex flex-col gap-5">
             {sidebarPosts.map((post, idx) => (
-              <Link
+              <ArticleLink
                 key={post.slug}
-                href={`/news/${post.slug}`}
+                categorySlug={post.category}
+                slug={post.slug}
                 className={`flex gap-4 pb-4 group ${
-                  idx !== sidebarPosts.length - 1 ? "border-b border-slate-100" : ""
+                  idx !== sidebarPosts.length - 1
+                    ? "border-b border-slate-100"
+                    : ""
                 }`}
               >
                 <div className="flex-1">
@@ -108,7 +116,7 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
                     className="object-cover"
                   />
                 </div>
-              </Link>
+              </ArticleLink>
             ))}
 
             <button className="mt-4 w-full md:w-fit bg-pd-red text-white font-black text-sm py-3 px-8 rounded transition-all active:scale-95 hover:bg-black uppercase tracking-tighter">
@@ -116,7 +124,6 @@ export default function NewsSection({ title, posts }: NewsSectionProps) {
             </button>
           </div>
         </div>
-
       </div>
     </section>
   );
