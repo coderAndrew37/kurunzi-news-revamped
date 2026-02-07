@@ -114,3 +114,13 @@ export type ActionResponse = {
   error?: string | Record<string, string[]>; // Handles both generic strings and Zod flattened errors
   warning?: string;
 };
+
+export interface WorkflowItem {
+  id: string;
+  title: string;
+  status: ArticleStatus;
+  category: string;
+  updated_at: string;
+  site_context: string;
+  is_breaking: boolean;
+}

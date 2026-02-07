@@ -1,42 +1,46 @@
 @import "tailwindcss";
 
+/* Remove the tw-animate and shadcn imports that are causing the crash */
+
+@custom-variant dark (&:is(.dark *));
+
 @theme {
-  --color-pd-red: #ff0000; /* navbar / brand */
-  --color-pd-ticker: #ff3b3b; /* breaking news only */
+  /* Your custom branding */
+  --color-pd-red: #ff0000;
+  --color-pd-ticker: #ff3b3b;
   --font-heading: Inter, sans-serif;
   --color-pd-nav-surface: #fafafa;
-}
 
-@layer base {
-  body {
-    @apply text-slate-900 antialiased;
-    font-family: var(--font-heading);
-  }
-}
+  /* shadcn Animation keys (v4 style) */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
 
-@keyframes ticker {
-  0% {
-    transform: translateX(0);
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
   }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-@layer utilities {
-  .animate-ticker {
-    animation: ticker 30s linear infinite;
-  }
-
-  .bg-pd-nav {
-    background-color: var(--color-pd-nav-surface);
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
   }
 
-  .text-pd-ticker {
-    color: var(--color-pd-ticker);
-  }
+  /* Your Ticker Animation */
+  --animate-ticker: ticker 30s linear infinite;
 
-  .bg-pd-ticker {
-    background-color: var(--color-pd-ticker);
+  @keyframes ticker {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
   }
 }
