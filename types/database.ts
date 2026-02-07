@@ -26,6 +26,7 @@ export interface ArticleWorkflowRow {
   // Joined from the 'profiles' table via Supabase .select()
   profiles: {
     sanity_author_id: string;
+    full_name: string;
   };
 }
 

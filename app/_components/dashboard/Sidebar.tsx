@@ -19,10 +19,10 @@ export default function Sidebar({ role }: { role: "writer" | "admin" }) {
   const supabase = createClient();
 
   const menuItems = [
-    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "My Articles", href: "/dashboard/articles", icon: FileText },
-    { name: "New Story", href: "/dashboard/new", icon: PlusCircle },
-    { name: "Profile", href: "/dashboard/profile", icon: User },
+    { name: "Overview", href: "/writer/dashboard", icon: LayoutDashboard },
+    { name: "My Articles", href: "/writer/dashboard/articles", icon: FileText },
+    { name: "New Story", href: "/writer/dashboard/new", icon: PlusCircle },
+    { name: "Profile", href: "/writer/dashboard/profile", icon: User },
   ];
 
   const handleLogout = async () => {

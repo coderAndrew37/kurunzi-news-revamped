@@ -19,14 +19,13 @@ export const SetupPasswordSchema = z
 export const OnboardingSchema = z.object({
   full_name: z.string().min(2, "Full name is required"),
   bio: z.string().max(500, "Bio must be under 500 characters").optional(),
-  avatar_url: z.string().url("Invalid image URL").optional().or(z.literal("")),
 });
 
 // 3. Article Workflow Schema (The most critical one)
 export const ArticleSchema = z.object({
   title: z.string().min(5, "Title is too short").max(150),
   excerpt: z.string().max(300).optional(),
-  category: z.enum(["politics", "tech", "lifestyle", "business"]),
+  category: z.enum(["politics", "news", "entertainment", "kurunzi-exclusive"]),
   // Tiptap content is JSONB, so we validate the root structure
   content: z.object({
     type: z.literal("doc"),

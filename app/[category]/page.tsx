@@ -3,7 +3,6 @@ import { mapPostToUi } from "@/lib/sanity/mapper";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import NewsSection from "../_components/NewsSection";
-import ArticleLink from "../_components/ArticleLink";
 
 export default async function CategoryPage({
   params,
@@ -24,7 +23,7 @@ export default async function CategoryPage({
   return (
     <main className="pb-20">
       {/* 1. Top Section (Uses updated NewsSection which uses SanityImage) */}
-      <NewsSection title={data.category.title} posts={topPosts} />
+      <NewsSection title={data.category.title} posts={topPosts} slug={slug} />
 
       {/* 2. Middle Banner */}
       <div className="max-w-7xl mx-auto px-4 my-8">
@@ -54,6 +53,7 @@ export default async function CategoryPage({
       <NewsSection
         title={`Trending in ${data.category.title}`}
         posts={morePosts}
+        slug={slug}
       />
 
       {/* 4. The Deep Archive CTA */}

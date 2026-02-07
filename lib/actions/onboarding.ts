@@ -1,59 +1,82 @@
 "use server";
 
 import { createClient } from "@/lib/utils/supabase/server";
-import { sanityServerClient as sanity } from "@/lib/sanity/client"; // Sanity Write Client
+import { createClient as createAdmin } from "@supabase/supabase-js";
+import { sanityServerClient as sanity } from "@/lib/sanity/server";
 import { OnboardingSchema } from "@/lib/schemas";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { createError, parseUnknownError } from "@/lib/utils/error-builder";
+import { ActionResponse } from "@/types/errors";
 
-export async function saveOnboardingAction(prevState: any, formData: FormData) {
+const supabaseAdmin = createAdmin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
+
+export async function saveOnboardingAction(
+  formData: FormData,
+): Promise<ActionResponse> {
   const supabase = await createClient();
   const rawData = {
     full_name: formData.get("full_name"),
     bio: formData.get("bio"),
-    avatar_url: formData.get("avatar_url"),
   };
 
   const validated = OnboardingSchema.safeParse(rawData);
-  if (!validated.success)
-    return { errors: validated.error.flatten().fieldErrors };
+  if (!validated.success) {
+    return {
+      success: false,
+      error: createError(
+        "VALIDATION_ERROR",
+        "Check your inputs",
+        validated.error.flatten().fieldErrors as any,
+      ),
+    };
+  }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expired." };
+  if (!user)
+    return {
+      success: false,
+      error: createError("AUTH_UNAUTHORIZED", "Session expired"),
+    };
 
   try {
-    // 1. Create/Update Author in Sanity
-    // We use a deterministic ID based on Supabase UUID to avoid duplicates
     const sanityAuthor = await sanity.createOrReplace({
       _id: `author-${user.id}`,
       _type: "author",
       name: validated.data.full_name,
       slug: {
         _type: "slug",
-        current: validated.data.full_name.toLowerCase().replace(/\s+/g, "-"),
+        current: validated.data.full_name
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-"),
       },
       bio: validated.data.bio,
       supabaseUserId: user.id,
-      // Note: Handling image upload to Sanity assets would go here if avatar_url is a file
     });
 
-    // 2. Update the Profile in Supabase (including the sanity_author_id link)
-    const { error } = await supabase
+    const { error: dbError } = await supabaseAdmin
       .from("profiles")
       .update({
         full_name: validated.data.full_name,
         bio: validated.data.bio,
-        avatar_url: validated.data.avatar_url,
-        sanity_author_id: sanityAuthor._id, // Add this column to your table!
+        sanity_author_id: sanityAuthor._id,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
 
-    if (error) throw error;
-  } catch (err: any) {
-    return { error: "Onboarding sync failed: " + err.message };
+    if (dbError) throw dbError;
+
+    // Clear the cache so the dashboard sees the new name/bio
+    revalidatePath("/", "layout");
+  } catch (err: unknown) {
+    return { success: false, error: parseUnknownError(err) };
   }
 
-  redirect("/dashboard");
+  redirect("/writer/dashboard");
 }

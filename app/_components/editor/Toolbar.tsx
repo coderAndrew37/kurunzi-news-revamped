@@ -21,8 +21,24 @@ export default function EditorToolbar({ editor }: { editor: Editor | null }) {
     if (url) editor.chain().focus().setImage({ src: url }).run();
   };
 
-  const handleLinkSelect = (url: string) => {
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  const handleLinkSelect = (url: string, title: string) => {
+    // If text is selected, link it. If not, insert the title as a link.
+    const { from, to } = editor.state.selection;
+
+    if (from === to) {
+      editor
+        .chain()
+        .focus()
+        .insertContent(`<a href="${url}">${title}</a> `)
+        .run();
+    } else {
+      editor
+        .chain()
+        .focus()
+        .extendMarkRange("link")
+        .setLink({ href: url })
+        .run();
+    }
     setShowLinkSearch(false);
   };
 

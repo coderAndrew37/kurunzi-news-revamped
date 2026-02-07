@@ -12,7 +12,6 @@
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.94.1",
-    "@tiptap/extension-bubble-menu": "^3.19.0",
     "@tiptap/extension-character-count": "^3.19.0",
     "@tiptap/extension-image": "^3.19.0",
     "@tiptap/extension-link": "^3.19.0",

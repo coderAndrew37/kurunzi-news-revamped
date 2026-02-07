@@ -76,7 +76,7 @@ export default async function CategoryArchivePage({
             {/* Right: Image Thumbnail */}
             <div className="relative w-24 h-24 md:w-48 md:h-32 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
               <Image
-                src={post.image}
+                src={post.image || "/placeholder.png"}
                 alt={post.title}
                 fill
                 sizes="(max-width: 768px) 96px, 192px"
