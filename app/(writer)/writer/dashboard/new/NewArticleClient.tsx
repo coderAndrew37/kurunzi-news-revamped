@@ -1,38 +1,59 @@
 "use client";
 
-import { useState } from "react";
-import { saveDraftAction } from "@/lib/actions/articles";
 import NewsEditor from "@/app/_components/editor/ArticleEditor";
 import TagSelector from "@/app/_components/editor/TagSelector";
-import { WriterDraft } from "@/types/editor";
-import { JSONContent } from "@tiptap/react";
+import { saveDraftAction } from "@/lib/actions/articles";
 import { uploadMediaAction } from "@/lib/actions/media";
-import { ImageIcon, X, Loader2 } from "lucide-react";
+import { ActionResponse, WriterDraft } from "@/types/editor";
+import { Globe, ImageIcon, Loader2, Save, X, Zap } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface NewArticleClientProps {
   initialData?: WriterDraft;
   initialCategories: { title: string; slug: string }[];
 }
 
+const STORAGE_KEY = "pda_draft_v1";
+
 export default function NewArticleClient({
   initialData,
   initialCategories,
 }: NewArticleClientProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Initialize state using initialData if editing, or a blank template if new
-  const [article, setArticle] = useState<WriterDraft>(
-    initialData || {
+  // 1. Initialize State with persistence check
+  const [article, setArticle] = useState<WriterDraft>(() => {
+    if (initialData) return initialData;
+
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    }
+
+    return {
       title: "",
       category: initialCategories[0]?.slug || "",
       excerpt: "",
       status: "draft",
       featuredImage: null,
+      imageCaption: "",
+      imageSource: "",
+      isBreaking: false,
+      siteContext: "main",
       tags: [],
       content: { type: "doc", content: [] },
-    },
-  );
+    };
+  });
+
+  // 2. Auto-save to LocalStorage
+  useEffect(() => {
+    if (!initialData) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(article));
+    }
+  }, [article, initialData]);
 
   const handleFeaturedImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -44,44 +65,203 @@ export default function NewArticleClient({
     const formData = new FormData();
     formData.append("file", file);
 
-    const result = await uploadMediaAction(formData);
+    const promise = uploadMediaAction(formData);
 
-    if (result.success && result.url) {
-      setArticle((prev) => ({ ...prev, featuredImage: result.url }));
-    } else {
-      alert(result.error || "Image upload failed");
-    }
+    toast.promise(promise, {
+      loading: "Uploading media to CDN...",
+      success: (result) => {
+        if (result.success) {
+          setArticle((prev) => ({ ...prev, featuredImage: result.url }));
+          return "Image processed successfully";
+        }
+        throw new Error(result.error);
+      },
+      error: (err) => `Upload failed: ${err.message}`,
+    });
     setIsUploading(false);
   };
 
   const handleSave = async () => {
-    if (!article.title) return alert("Please add a title");
-    if (!article.category) return alert("Please select a category");
+    setIsSaving(true);
 
-    const result = await saveDraftAction(article);
-    if (result.error) {
-      console.error(result.error);
-      alert("Failed to save: " + result.error);
+    // Cast the result to our known response type
+    const result = (await saveDraftAction(article)) as ActionResponse;
+
+    if (result.success) {
+      toast.success("Story successfully synced to workflow");
+      if (!initialData) localStorage.removeItem(STORAGE_KEY);
+    } else if (result.error) {
+      // 1. Handle Zod validation errors (Record<string, string[]>)
+      if (typeof result.error === "object") {
+        Object.entries(result.error).forEach(([field, messages]) => {
+          // Accessing the first message for each field
+          toast.error(`${field}: ${messages[0]}`);
+        });
+      }
+      // 2. Handle generic string errors
+      else {
+        toast.error(result.error);
+      }
     } else {
-      alert("Story saved successfully!");
+      // Fallback for unexpected states
+      toast.error("An unexpected system error occurred.");
     }
+
+    setIsSaving(false);
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-6 pb-32">
-      {/* Meta Settings: Category & Excerpt */}
-      <div className="flex flex-col md:flex-row gap-6 items-start mb-8">
-        <div className="w-full md:w-1/3">
-          <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2 tracking-widest">
-            Category
+    <div className="max-w-5xl mx-auto py-12 px-6 pb-40">
+      {/* Editorial Header: Context & Breaking Toggle */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-10 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Globe size={16} className="text-slate-400" />
+            <select
+              aria-label="select site context"
+              value={article.siteContext}
+              onChange={(e) =>
+                setArticle({ ...article, siteContext: e.target.value })
+              }
+              className="bg-transparent font-black uppercase text-[10px] tracking-widest outline-none cursor-pointer"
+            >
+              <option value="main">Main News</option>
+              <option value="worldcup">World Cup 2027</option>
+              <option value="elections">Elections 2027</option>
+            </select>
+          </div>
+
+          <div className="h-4 w-px bg-slate-200" />
+
+          <button
+            onClick={() =>
+              setArticle({ ...article, isBreaking: !article.isBreaking })
+            }
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border ${
+              article.isBreaking
+                ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-200"
+                : "bg-white border-slate-200 text-slate-400 hover:border-red-300"
+            }`}
+          >
+            <Zap
+              size={14}
+              fill={article.isBreaking ? "currentColor" : "none"}
+            />
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              Breaking News
+            </span>
+          </button>
+        </div>
+
+        <div className="px-4 py-1.5 rounded-full bg-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-widest">
+          {article.status} Mode
+        </div>
+      </div>
+
+      {/* Main Inputs */}
+      <input
+        className="text-6xl font-black w-full outline-none mb-4 placeholder:text-slate-100 tracking-tighter leading-[1.1]"
+        placeholder="Enter Headline..."
+        value={article.title}
+        onChange={(e) => setArticle({ ...article, title: e.target.value })}
+      />
+
+      <textarea
+        placeholder="Start with a strong lede (summary)..."
+        value={article.excerpt}
+        className="w-full p-0 bg-transparent text-2xl text-slate-500 font-serif italic mb-12 border-none outline-none resize-none leading-relaxed"
+        rows={2}
+        onChange={(e) => setArticle({ ...article, excerpt: e.target.value })}
+      />
+
+      {/* Media Management Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-16">
+        <div className="lg:col-span-3">
+          {article.featuredImage ? (
+            <div className="relative group rounded-[2.5rem] overflow-hidden aspect-video shadow-2xl border-8 border-slate-50">
+              <Image
+                src={
+                  typeof article.featuredImage === "string"
+                    ? article.featuredImage
+                    : ""
+                }
+                alt="Feature"
+                className="object-cover"
+                fill
+                priority
+              />
+              <button
+                aria-label="Remove featured image"
+                onClick={() => setArticle({ ...article, featuredImage: null })}
+                className="absolute top-6 right-6 bg-white/90 backdrop-blur p-3 rounded-full text-red-600 shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-slate-200 rounded-[2.5rem] bg-slate-50 hover:bg-white hover:border-red-300 transition-all cursor-pointer group">
+              <div className="bg-white p-6 rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform">
+                <ImageIcon
+                  size={40}
+                  className="text-slate-300 group-hover:text-red-400"
+                />
+              </div>
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                Upload Master Media
+              </span>
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleFeaturedImageUpload}
+                accept="image/*"
+              />
+            </label>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+              Caption
+            </label>
+            <textarea
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs outline-none focus:bg-white focus:ring-4 focus:ring-red-500/5 transition-all resize-none"
+              placeholder="Describe the scene..."
+              rows={3}
+              value={article.imageCaption}
+              onChange={(e) =>
+                setArticle({ ...article, imageCaption: e.target.value })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+              Image Source
+            </label>
+            <input
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs outline-none focus:bg-white focus:ring-4 focus:ring-red-500/5 transition-all"
+              placeholder="e.g. Getty Images"
+              value={article.imageSource}
+              onChange={(e) =>
+                setArticle({ ...article, imageSource: e.target.value })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+            Section / Category
           </label>
           <select
-            aria-label="Select category"
+            aria-label="select category"
             value={article.category}
             onChange={(e) =>
               setArticle({ ...article, category: e.target.value })
             }
-            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all appearance-none cursor-pointer"
+            className="w-full p-5 bg-slate-900 text-white rounded-3xl font-bold outline-none ring-offset-4 focus:ring-2 focus:ring-red-500 transition-all cursor-pointer shadow-xl"
           >
             {initialCategories.map((cat) => (
               <option key={cat.slug} value={cat.slug}>
@@ -90,113 +270,48 @@ export default function NewArticleClient({
             ))}
           </select>
         </div>
-
-        <div className="w-full md:w-2/3">
-          <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2 tracking-widest">
-            Excerpt / Lede
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+            Related Keywords
           </label>
-          <textarea
-            placeholder="A short summary for previews..."
-            value={article.excerpt}
-            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 h-[46px] resize-none transition-all"
-            onChange={(e) =>
-              setArticle({ ...article, excerpt: e.target.value })
-            }
+          <TagSelector
+            selectedTags={article.tags}
+            onTagsChange={(tags) => setArticle({ ...article, tags })}
           />
         </div>
       </div>
 
-      {/* Headline Input */}
-      <input
-        className="text-5xl font-black w-full outline-none mb-8 placeholder:text-slate-200 tracking-tight leading-tight focus:placeholder:text-slate-100"
-        placeholder="Headline goes here..."
-        value={article.title}
-        onChange={(e) => setArticle({ ...article, title: e.target.value })}
+      {/* Tiptap Editor */}
+      <NewsEditor
+        initialContent={article.content}
+        onUpdate={(json) => setArticle({ ...article, content: json })}
       />
 
-      {/* Featured Image Section */}
-      <div className="mb-10">
-        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-3 tracking-widest">
-          Featured Image
-        </label>
-        {article.featuredImage ? (
-          <div className="relative group rounded-2xl overflow-hidden border-4 border-slate-100 shadow-sm h-80">
-            <Image
-              src={article.featuredImage as string}
-              alt="Featured cover"
-              className="object-cover"
-              fill
-              priority
-            />
-            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <button
-                aria-label="Remove featured image"
-                type="button"
-                onClick={() =>
-                  setArticle((prev) => ({ ...prev, featuredImage: null }))
-                }
-                className="bg-white p-3 rounded-full shadow-xl hover:scale-110 transition-transform"
-              >
-                <X size={20} className="text-red-500" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:bg-slate-100/50 hover:border-red-200 cursor-pointer transition-all group">
-            {isUploading ? (
-              <Loader2 className="animate-spin text-red-500" size={32} />
-            ) : (
-              <ImageIcon
-                className="text-slate-300 group-hover:text-red-300 mb-2 transition-colors"
-                size={40}
-              />
-            )}
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              {isUploading ? "Uploading to Cloud..." : "Upload Cover Image"}
-            </span>
-            <input
-              type="file"
-              className="hidden"
-              onChange={handleFeaturedImageUpload}
-              accept="image/*"
-              disabled={isUploading}
-            />
-          </label>
-        )}
-      </div>
+      {/* Global Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-8 bg-white/80 backdrop-blur-2xl border-t border-slate-100 flex justify-between items-center z-50">
+        <div className="hidden md:flex items-center gap-3">
+          <div
+            className={`w-2.5 h-2.5 rounded-full ${isSaving ? "bg-amber-500 animate-pulse" : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"}`}
+          />
+          <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">
+            {isSaving ? "Cloud Sync in Progress" : "Editorial Workspace Safe"}
+          </span>
+        </div>
 
-      {/* Tag Selector Component */}
-      <div className="mb-10">
-        <h3 className="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-widest">
-          Tags & Topics
-        </h3>
-        <TagSelector
-          selectedTags={article.tags}
-          onTagsChange={(tags) => setArticle({ ...article, tags })}
-        />
-      </div>
-
-      {/* Main Tiptap Editor */}
-      <div className="min-h-[400px]">
-        <NewsEditor
-          initialContent={article.content}
-          onUpdate={(json: JSONContent) =>
-            setArticle({ ...article, content: json as any })
-          }
-        />
-      </div>
-
-      {/* Floating Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/60 backdrop-blur-xl border-t border-slate-100 flex justify-end items-center gap-4 z-50">
-        <p className="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-4">
-          Draft automatically saved to workflow
-        </p>
         <button
           onClick={handleSave}
-          disabled={isUploading}
-          className="bg-red-600 disabled:bg-slate-300 text-white px-10 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-2xl shadow-red-500/30 hover:bg-red-700 transition-all active:scale-95 flex items-center gap-2"
+          disabled={isSaving || isUploading}
+          className="group relative bg-red-600 disabled:bg-slate-300 text-white px-14 py-5 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-red-500/40 hover:bg-red-700 hover:-translate-y-1 transition-all active:scale-95 flex items-center gap-3 overflow-hidden"
         >
-          {initialData ? "Update Article" : "Save Story Draft"}
+          {isSaving ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <Save
+              size={18}
+              className="group-hover:rotate-12 transition-transform"
+            />
+          )}
+          <span>{initialData ? "Update Story" : "Finalize Draft"}</span>
         </button>
       </div>
     </div>

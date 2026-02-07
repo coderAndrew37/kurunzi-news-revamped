@@ -4,6 +4,7 @@ import "./globals.css";
 import Footer from "./_components/Footer";
 import Navbar from "./_components/Navbar";
 import { fetchNavCategories } from "@/lib/sanity/api";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -100,6 +101,7 @@ export default async function RootLayout({
       >
         <Navbar categories={categories} />
         <main className="grow">{children}</main>
+        <Toaster position="top-center" richColors />
         <Footer />
       </body>
     </html>

@@ -1,5 +1,5 @@
+// @/lib/schemas/article.ts
 import { z } from "zod";
-import { JSONContent } from "@tiptap/react";
 
 export const ArticleSchema = z.object({
   title: z
@@ -8,21 +8,25 @@ export const ArticleSchema = z.object({
     .max(100, "Headline exceeds standard news length"),
   excerpt: z
     .string()
-    .min(50, "Lead paragraph (excerpt) is too short")
-    .max(250, "Lead paragraph should be concise"),
+    .min(30, "Lead paragraph (excerpt) is too short")
+    .max(300, "Lead paragraph should be concise"),
   category: z.string().min(1, "Please select a category"),
-  // Strict Tiptap JSON Validation
-  content: z.custom<JSONContent>((val) => {
-    return (
-      val && typeof val === "object" && "type" in val && val.type === "doc"
-    );
+
+  // Editorial Metadata
+  imageCaption: z.string().max(200, "Caption is too long").optional(),
+  imageSource: z.string().max(100, "Source credit is too long").optional(),
+  isBreaking: z.boolean().default(false),
+  siteContext: z.enum(["main", "worldcup", "elections"]).default("main"),
+
+  content: z.any().refine((val) => {
+    return val && typeof val === "object" && val.type === "doc";
   }, "Invalid article body structure"),
-  // Handle either a URL string (existing) or a File object (new upload)
+
   featuredImage: z
-    .union([z.string().url(), z.instanceof(File)])
-    .nullable()
+    .any()
     .refine((val) => val !== null, "Featured image is required"),
-  tags: z.array(z.string()).max(5, "Maximum 5 tags allowed"),
+
+  tags: z.array(z.string()).max(8, "Maximum 8 tags allowed"),
   status: z
     .enum(["draft", "pending_review", "rejected", "approved"])
     .default("draft"),

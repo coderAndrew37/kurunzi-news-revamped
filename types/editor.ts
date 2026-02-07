@@ -13,6 +13,12 @@ export interface WriterDraft {
   excerpt: string;
   category: string;
   featuredImage: string | File | null;
+  // New Editorial Fields from Sanity Schema
+  imageCaption?: string;
+  imageSource?: string;
+  isBreaking?: boolean;
+  siteContext?: string;
+  // Core Fields
   content: JSONContent;
   status: ArticleStatus;
   tags: string[];
@@ -101,3 +107,10 @@ export interface SanityImageBlock extends TypedObject {
     _ref: string;
   };
 }
+
+export type ActionResponse = {
+  success: boolean;
+  articleId?: string;
+  error?: string | Record<string, string[]>; // Handles both generic strings and Zod flattened errors
+  warning?: string;
+};
