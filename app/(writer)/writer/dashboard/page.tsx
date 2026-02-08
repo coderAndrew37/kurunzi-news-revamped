@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/utils/supabase/server";
-import ArticleListTable from "@/app/_components/dashboard/ArticleListTable";
 import StatCard from "@/app/_components/dashboard/StatCard";
+import WorkflowTable from "@/app/_components/editor/WorkFlowTable";
+import { createClient } from "@/lib/utils/supabase/server";
 import { WriterDraft } from "@/types/editor";
 import Link from "next/link";
 
@@ -66,7 +66,7 @@ export default async function WriterDashboard() {
           </Link>
         </div>
         {/* Pass the sliced array to limit it to 5 items */}
-        <ArticleListTable articles={formattedArticles.slice(0, 5)} />
+        <WorkflowTable articles={articles?.slice(0, 5) || []} />
       </div>
     </div>
   );
