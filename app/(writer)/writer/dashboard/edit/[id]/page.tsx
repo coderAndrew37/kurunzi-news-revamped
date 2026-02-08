@@ -6,13 +6,17 @@ import { WriterDraft } from "@/types/editor";
 export default async function EditArticlePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const supabase = await createClient();
+
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+
   const { data: rawArticle } = await supabase
     .from("article_workflow")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!rawArticle) notFound();

@@ -28,7 +28,7 @@ export const LoginFormSchema = z.object({
 
 export const InviteStaffSchema = z.object({
   email: z.string().email("Please enter a valid work email"),
-  role: z.enum(["writer", "editor"], {
+  role: z.enum(["writer", "admin"], {
     message: "Please select a valid role",
   }),
 });

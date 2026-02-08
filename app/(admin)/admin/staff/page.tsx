@@ -1,11 +1,11 @@
 "use client";
 
+import { inviteStaffMember } from "@/lib/actions/auth";
+import { InviteStaffSchema } from "@/lib/schemas"; // Define this in your schemas
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, Copy, Loader2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { InviteStaffSchema } from "@/lib/schemas"; // Define this in your schemas
-import { inviteStaffMember } from "@/lib/actions/auth";
-import { UserPlus, Copy, Check, Loader2, Mail } from "lucide-react";
 import { z } from "zod";
 
 type InviteFormValues = z.infer<typeof InviteStaffSchema>;
@@ -90,7 +90,7 @@ export default function AdminStaffPage() {
               className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-pd-red font-bold appearance-none"
             >
               <option value="writer">Writer (Drafting only)</option>
-              <option value="editor">Editor (Admin & Publishing)</option>
+              <option value="admin">Editor (Admin & Publishing)</option>
             </select>
           </div>
 

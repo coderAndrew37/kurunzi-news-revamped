@@ -9,6 +9,7 @@ export type ArticleStatus =
 
 export interface WriterDraft {
   id?: string;
+  slug?: string;
   title: string;
   excerpt: string;
   category: string;
@@ -16,6 +17,7 @@ export interface WriterDraft {
   // New Editorial Fields from Sanity Schema
   imageCaption?: string;
   imageSource?: string;
+  imageAlt?: string; // Add this
   isBreaking?: boolean;
   siteContext?: string;
   // Core Fields

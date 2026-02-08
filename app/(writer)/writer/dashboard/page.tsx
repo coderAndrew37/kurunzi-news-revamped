@@ -2,6 +2,7 @@ import { createClient } from "@/lib/utils/supabase/server";
 import ArticleListTable from "@/app/_components/dashboard/ArticleListTable";
 import StatCard from "@/app/_components/dashboard/StatCard";
 import { WriterDraft } from "@/types/editor";
+import Link from "next/link";
 
 export default async function WriterDashboard() {
   const supabase = await createClient();
@@ -57,12 +58,12 @@ export default async function WriterDashboard() {
           <h2 className="font-black uppercase tracking-tight text-slate-400 text-xs">
             Recent Articles
           </h2>
-          <a
-            href="/dashboard/articles"
+          <Link
+            href="/writer/dashboard/articles"
             className="text-xs font-bold text-pd-red hover:underline"
           >
             View All
-          </a>
+          </Link>
         </div>
         {/* Pass the sliced array to limit it to 5 items */}
         <ArticleListTable articles={formattedArticles.slice(0, 5)} />

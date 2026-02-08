@@ -33,7 +33,7 @@ export async function loginAction(values: z.infer<typeof LoginFormSchema>) {
 
   if (error) return { error: error.message };
 
-  redirect("/dashboard");
+  redirect("/writer/dashboard");
 }
 
 /**
@@ -85,13 +85,12 @@ export async function saveOnboardingAction(formData: FormData) {
     .update({
       full_name: validated.data.full_name,
       bio: validated.data.bio,
-      avatar_url: validated.data.avatar_url,
     })
     .eq("id", user?.id);
 
   if (error) return { error: error.message };
 
-  redirect("/dashboard");
+  redirect("/writer/dashboard");
 }
 
 export async function inviteStaffMember(formData: FormData) {
@@ -105,7 +104,7 @@ export async function inviteStaffMember(formData: FormData) {
 
   const { email, role } = validated.data;
   const invited_permissions =
-    role === "editor" ? ["writer", "admin"] : ["writer"];
+    role === "admin" ? ["writer", "admin"] : ["writer"];
 
   try {
     // 2. Database Transaction: Generate Invite Token
@@ -133,11 +132,11 @@ export async function inviteStaffMember(formData: FormData) {
     // 4. Send Email via Resend (Handles Sandbox rerouting internally)
     const emailResult = await sendEmail({
       to: email,
-      subject: `Invitation to join Kurunzi Newsroom as ${role === "editor" ? "an Editor" : "a Writer"}`,
+      subject: `Invitation to join Kurunzi Newsroom as ${role === "admin" ? "an Editor" : "a Writer"}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
           <h2 style="color: #0f172a; margin-bottom: 16px;">Welcome to Kurunzi</h2>
-          <p style="color: #475569; line-height: 1.6;">You've been invited to join our editorial team. As <strong>${role === "editor" ? "an Editor" : "a Writer"}</strong>, you will have access to our internal newsroom tools to draft and manage stories.</p>
+          <p style="color: #475569; line-height: 1.6;">You've been invited to join our editorial team. As <strong>${role === "admin" ? "an Editor" : "a Writer"}</strong>, you will have access to our internal newsroom tools to draft and manage stories.</p>
           <div style="margin: 32px 0;">
             <a href="${inviteLink}" style="background-color: #e11d48; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
               Set Up Your Account

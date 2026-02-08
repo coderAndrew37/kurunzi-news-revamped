@@ -10,7 +10,7 @@ export async function uploadMediaAction(formData: FormData) {
   if (!file) return { error: "No file provided" };
 
   // 1. Basic Validation
-  const validTypes = ["image/jpeg", "image/png", "image/webp, image/jpg"];
+  const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
   if (!validTypes.includes(file.type)) {
     return { error: "Invalid file type. Only JPG, PNG, and WebP allowed." };
   }

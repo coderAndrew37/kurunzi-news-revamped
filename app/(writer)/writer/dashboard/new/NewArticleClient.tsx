@@ -9,6 +9,8 @@ import { Globe, ImageIcon, Loader2, Save, X, Zap } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { slugify } from "@/lib/utils/slugify";
 
 interface NewArticleClientProps {
   initialData?: WriterDraft;
@@ -21,9 +23,10 @@ export default function NewArticleClient({
   initialData,
   initialCategories,
 }: NewArticleClientProps) {
+  const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // 1. Initialize State with persistence check
   const [article, setArticle] = useState<WriterDraft>(() => {
     if (initialData) return initialData;
@@ -39,6 +42,7 @@ export default function NewArticleClient({
       excerpt: "",
       status: "draft",
       featuredImage: null,
+      imageAlt: "",
       imageCaption: "",
       imageSource: "",
       isBreaking: false,
@@ -55,13 +59,22 @@ export default function NewArticleClient({
     }
   }, [article, initialData]);
 
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const title = e.target.value;
+    setArticle((prev) => ({
+      ...prev,
+      title,
+      slug: slugify(title),
+    }));
+  };
+
   const handleFeaturedImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
+    setIsUploading(true); // Start loading
     const formData = new FormData();
     formData.append("file", file);
 
@@ -70,15 +83,18 @@ export default function NewArticleClient({
     toast.promise(promise, {
       loading: "Uploading media to CDN...",
       success: (result) => {
+        setIsUploading(false); // Stop loading on success
         if (result.success) {
           setArticle((prev) => ({ ...prev, featuredImage: result.url }));
           return "Image processed successfully";
         }
         throw new Error(result.error);
       },
-      error: (err) => `Upload failed: ${err.message}`,
+      error: (err) => {
+        setIsUploading(false); // Stop loading on error
+        return `Upload failed: ${err.message}`;
+      },
     });
-    setIsUploading(false);
   };
 
   const handleSave = async () => {

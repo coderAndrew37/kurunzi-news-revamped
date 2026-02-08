@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient as createSupabase } from "@/lib/utils/supabase/server";
-import { sanityServerClient as sanity } from "@/lib/sanity/client";
+import { sanityServerClient as sanity } from "@/lib/sanity/server";
 import { tiptapToPortableText } from "@/lib/editor/transform";
 import { getSanityCategoryId } from "@/lib/sanity/categories";
 import { createError, parseUnknownError } from "@/lib/utils/error-builder";
@@ -159,7 +159,7 @@ export async function approveAndPublishAction(
     const { error: updateError } = await supabase
       .from("article_workflow")
       .update({
-        status: "approved",
+        status: "published",
         sanity_id: sanityDoc._id,
         published_at: new Date().toISOString(),
       })

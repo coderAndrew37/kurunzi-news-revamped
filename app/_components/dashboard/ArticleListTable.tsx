@@ -54,7 +54,7 @@ export default function ArticleListTable({
               <td className="px-6 py-4 text-right">
                 <div className="flex justify-end gap-2">
                   <Link
-                    href={`/dashboard/edit/${article.id}`}
+                    href={`/writer/dashboard/edit/${article.id}`}
                     className="p-2 hover:bg-white rounded-md border border-transparent hover:border-slate-200 text-slate-400 hover:text-pd-red transition-all"
                   >
                     <Edit3 size={16} />
