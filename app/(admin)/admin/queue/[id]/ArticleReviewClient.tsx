@@ -1,12 +1,24 @@
 "use client";
 
 import NewsEditor from "@/app/_components/editor/ArticleEditor";
-import { approveAndPublishAction } from "@/lib/actions/publish";
-import { ArticleWorkflowRow } from "@/types/database";
+import { approveArticleAction } from "@/lib/actions/approve";
+import { publishToSanityAction } from "@/lib/actions/publish";
+import { ArticleWorkflowRow, EicOverrides } from "@/types/database";
 import { TiptapNode } from "@/types/editor";
 import { JSONContent } from "@tiptap/react";
-import { Loader2, Search, Send, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle,
+  ChevronRight,
+  Globe,
+  Image as ImageIcon,
+  Loader2,
+  Search,
+  Send,
+  AlertCircle,
+} from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface ArticleReviewClientProps {
   initialArticle: ArticleWorkflowRow;
@@ -15,177 +27,247 @@ interface ArticleReviewClientProps {
 export default function ArticleReviewClient({
   initialArticle,
 }: ArticleReviewClientProps) {
+  // 1. Safe State Initialization
+  // We use the nullish coalescing operator to ensure we never read properties of null
   const [article, setArticle] = useState<ArticleWorkflowRow>(initialArticle);
-  const [publishing, setPublishing] = useState(false);
-  const [overrides, setOverrides] = useState({
-    metaTitle: initialArticle.title,
-    isBreaking: false,
+  const [isApproving, setIsApproving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  const [overrides, setOverrides] = useState<EicOverrides>({
+    metaTitle: initialArticle?.title ?? "",
+    isBreaking: initialArticle?.is_breaking ?? false,
+    siteContext: initialArticle?.site_context ?? "main",
   });
 
-  const handlePublish = async () => {
-    if (
-      !confirm(
-        "Confirm publication: This will push the article live to the main site.",
-      )
-    )
-      return;
+  // 2. Defensive Guard (After state initialization to satisfy React hook rules)
+  if (!initialArticle) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-500">
+        <AlertCircle className="mb-4 text-red-500" size={48} />
+        <h2 className="text-xl font-bold">Article Data Missing</h2>
+        <p>Could not load the article for review.</p>
+      </div>
+    );
+  }
 
-    setPublishing(true);
-    const result = await approveAndPublishAction(article.id, {
-      metaTitle: overrides.metaTitle,
-      isBreaking: overrides.isBreaking,
-    });
-
-    if (result.success) {
-      alert("Successfully published to Sanity!");
-      window.location.href = "/admin/queue";
-    } else {
-      alert(`Publishing Error: ${result.error.message}`);
+  const handleApprove = async () => {
+    setIsApproving(true);
+    try {
+      const result = await approveArticleAction(article.id, overrides);
+      if (result.success) {
+        toast.success("Article marked as Approved");
+        setArticle((prev) => ({ ...prev, status: "approved" }));
+      } else {
+        toast.error(`Approval Failed: ${result.error?.message}`);
+      }
+    } catch (err) {
+      toast.error("An unexpected error occurred during approval.");
+    } finally {
+      setIsApproving(false);
     }
-    setPublishing(false);
+  };
+
+  const handlePublish = async () => {
+    if (!confirm("Push this story live to Sanity?")) return;
+
+    setIsPublishing(true);
+    try {
+      const result = await publishToSanityAction(article.id, overrides);
+      if (result.success) {
+        toast.success("Live on Sanity!");
+        window.location.href = "/admin/queue";
+      } else {
+        toast.error(`Publishing Error: ${result.error?.message}`);
+      }
+    } catch (err) {
+      toast.error("An unexpected error occurred during publishing.");
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] mx-auto p-6">
-      {/* Left Column: The Content Editor */}
-      <div className="flex-1 bg-white rounded-[2.5rem] p-8 lg:p-12 border border-slate-100 shadow-sm">
-        <header className="mb-10 border-b border-slate-50 pb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full font-black uppercase text-[10px] tracking-widest">
-              {article.category}
-            </span>
-            <span className="text-slate-300 text-xs">|</span>
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-tight">
-              Draft ID: {article.id.split("-")[0]}
-            </span>
-          </div>
-
-          <h1 className="text-4xl lg:text-5xl font-black text-slate-900 leading-[1.1] tracking-tight">
-            {article.title}
-          </h1>
-
-          <div className="flex items-center gap-2 mt-6">
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
-              {article.profiles?.full_name?.charAt(0)}
-            </div>
-            <p className="text-slate-500 font-medium">
-              Written by{" "}
-              <span className="text-slate-900 font-bold">
-                {article.profiles?.full_name}
+    <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] mx-auto p-6 animate-in fade-in duration-500">
+      <div className="flex-1 space-y-6">
+        <section className="bg-white rounded-[3rem] p-8 lg:p-14 border border-slate-100 shadow-sm transition-all hover:shadow-md">
+          <header className="mb-10 border-b border-slate-50 pb-10">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="bg-red-600 text-white px-4 py-1.5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-200">
+                {article.category || "Uncategorized"}
               </span>
-            </p>
-          </div>
-        </header>
+              <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                <Globe size={12} />
+                {overrides.siteContext}
+              </div>
+            </div>
 
-        <NewsEditor
-          initialContent={article.content as unknown as JSONContent}
-          onUpdate={(json) =>
-            setArticle({
-              ...article,
-              // Cast the content array specifically to your strict Node type
-              content: {
-                type: "doc",
-                content: (json.content || []) as TiptapNode[],
-              },
-            })
-          }
-        />
+            <h1 className="text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-tighter mb-8">
+              {overrides.metaTitle || article.title}
+            </h1>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-sm font-black text-white">
+                  {article.profiles?.full_name?.charAt(0) || "W"}
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                    Author
+                  </p>
+                  <p className="text-slate-900 font-bold">
+                    {article.profiles?.full_name || "Unknown"}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                  Status
+                </p>
+                <span
+                  className={`text-xs font-black uppercase px-3 py-1 rounded-full ${
+                    article.status === "approved"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {article.status?.replace("_", " ") || "Draft"}
+                </span>
+              </div>
+            </div>
+          </header>
+
+          <NewsEditor
+            initialContent={article.content as unknown as JSONContent}
+            onUpdate={(json) =>
+              setArticle((prev) => ({
+                ...prev,
+                content: {
+                  type: "doc",
+                  content: (json.content || []) as TiptapNode[],
+                },
+              }))
+            }
+          />
+        </section>
       </div>
 
-      {/* Right Column: EiC Toolbox */}
-      <aside className="w-full lg:w-100 space-y-6">
-        {/* SEO & Quality Check Card */}
-        <section className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl shadow-slate-200">
-          <h3 className="flex items-center gap-2 font-black uppercase text-xs tracking-[0.2em] mb-8 text-slate-400">
-            <Search size={16} className="text-red-500" />
-            SEO Optimization
+      <aside className="w-full lg:w-[400px] space-y-6">
+        <section className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl">
+          <h3 className="flex items-center gap-2 font-black uppercase text-[10px] tracking-[0.2em] mb-8 text-slate-400">
+            <Search size={14} className="text-red-500" />
+            Editorial Overrides
           </h3>
 
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                Meta Title Override
+                SEO Headline
               </label>
-              <input
+              <textarea
+                aria-label="Meta Title"
                 value={overrides.metaTitle}
                 onChange={(e) =>
-                  setOverrides({ ...overrides, metaTitle: e.target.value })
+                  setOverrides((prev) => ({
+                    ...prev,
+                    metaTitle: e.target.value,
+                  }))
                 }
-                className="w-full bg-slate-800 border-none rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-red-500 transition-all"
-                placeholder="Enter custom SEO title..."
+                className="w-full bg-slate-800 border-none rounded-2xl p-4 text-sm font-medium outline-none focus:ring-2 focus:ring-red-500 min-h-[100px]"
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl">
-              <div>
-                <p className="text-xs font-bold">Breaking News</p>
-                <p className="text-[10px] text-slate-500">
-                  Highlight in ticker and alerts
-                </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
+                <span className="text-[10px] font-black uppercase">
+                  Breaking
+                </span>
+                <input
+                  aria-label="Breaking"
+                  type="checkbox"
+                  checked={overrides.isBreaking}
+                  onChange={(e) =>
+                    setOverrides((prev) => ({
+                      ...prev,
+                      isBreaking: e.target.checked,
+                    }))
+                  }
+                  className="w-5 h-5 accent-red-500"
+                />
               </div>
-              <input
-                aria-label="breaking news flag"
-                type="checkbox"
-                checked={overrides.isBreaking}
+              <select
+                aria-label="Site Context"
+                value={overrides.siteContext || "main"}
                 onChange={(e) =>
-                  setOverrides({ ...overrides, isBreaking: e.target.checked })
+                  setOverrides((prev) => ({
+                    ...prev,
+                    siteContext: e.target.value as any,
+                  }))
                 }
-                className="w-5 h-5 accent-red-500"
-              />
+                className="bg-slate-800 border-none rounded-2xl p-4 text-[10px] font-black uppercase outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="main">Main News</option>
+                <option value="worldcup">World Cup</option>
+                <option value="elections">Elections</option>
+              </select>
             </div>
           </div>
         </section>
 
-        {/* Quality Controls */}
-        <section className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <h3 className="flex items-center gap-2 font-black uppercase text-xs tracking-[0.2em] text-slate-800 mb-6">
-            <ShieldCheck size={16} className="text-green-600" />
-            Pre-Flight Check
+        <section className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <h3 className="flex items-center gap-2 font-black uppercase text-[10px] tracking-[0.2em] text-slate-400 mb-4">
+            <ImageIcon size={14} /> Featured Media
           </h3>
-
-          <ul className="space-y-4">
-            <CheckItem
-              label="Featured Image Linked"
-              active={!!article.featured_image_url}
-            />
-            <CheckItem
-              label="Category Logic Valid"
-              active={!!article.category}
-            />
-            <CheckItem
-              label="Sanity Reference Ready"
-              active={!!article.profiles?.sanity_author_id}
-            />
-          </ul>
+          <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-50">
+            {article.featured_image_url ? (
+              <Image
+                src={article.featured_image_url}
+                alt="Preview"
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-slate-300 text-[10px] font-bold uppercase">
+                No Image
+              </div>
+            )}
+          </div>
         </section>
 
-        {/* Action Button */}
-        <button
-          onClick={handlePublish}
-          disabled={publishing}
-          className="w-full bg-red-600 text-white py-8 rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-3 hover:bg-red-700 transition-all shadow-xl shadow-red-500/40 active:scale-95 disabled:bg-slate-200 disabled:shadow-none"
-        >
-          {publishing ? (
-            <Loader2 className="animate-spin" />
-          ) : (
-            <Send size={18} />
-          )}
-          Push to Live Site
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={handleApprove}
+            disabled={
+              isApproving || isPublishing || article.status === "approved"
+            }
+            className="w-full bg-white text-slate-900 border-2 border-slate-100 py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 hover:bg-slate-50 transition-all disabled:opacity-50"
+          >
+            {isApproving ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <CheckCircle size={16} />
+            )}
+            {article.status === "approved"
+              ? "Clearance Granted"
+              : "Approve Draft"}
+          </button>
+
+          <button
+            onClick={handlePublish}
+            disabled={isPublishing || isApproving}
+            className="w-full bg-red-600 text-white py-8 rounded-[2.5rem] font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 hover:bg-red-700 transition-all shadow-xl shadow-red-500/40 active:scale-95 disabled:bg-slate-200"
+          >
+            {isPublishing ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <>
+                <Send size={18} />
+                Publish to Sanity
+                <ChevronRight size={16} />
+              </>
+            )}
+          </button>
+        </div>
       </aside>
     </div>
-  );
-}
-
-function CheckItem({ label, active }: { label: string; active: boolean }) {
-  return (
-    <li
-      className={`flex items-center gap-3 text-[11px] font-black uppercase tracking-widest ${active ? "text-slate-600" : "text-slate-300"}`}
-    >
-      <div
-        className={`w-2 h-2 rounded-full ${active ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-slate-200"}`}
-      />
-      {label}
-    </li>
   );
 }

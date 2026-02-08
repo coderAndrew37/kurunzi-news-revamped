@@ -10,12 +10,13 @@ export interface ArticleWorkflowRow {
   excerpt: string;
   category: string;
   featured_image_url: string | null;
-  status: "draft" | "pending_review" | "approved";
+  status: "draft" | "pending_review" | "approved" | "rejected";
   site_context: "main" | "worldcup" | "elections" | null;
   created_at: string;
   published_at: string | null;
   sanity_id: string | null;
   author_id: string;
+  is_breaking?: boolean;
 
   // The raw JSON tree from the Tiptap Editor
   content: {

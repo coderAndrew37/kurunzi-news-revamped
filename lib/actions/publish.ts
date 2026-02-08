@@ -7,68 +7,52 @@ import { getSanityCategoryId } from "@/lib/sanity/categories";
 import { createError, parseUnknownError } from "@/lib/utils/error-builder";
 import { ActionResponse } from "@/types/errors";
 import { EicOverrides, ArticleWorkflowRow } from "@/types/database";
+import { revalidatePath } from "next/cache";
 
 /**
- * High-integrity action to move an article from Supabase Workflow to Sanity CMS.
- * Handles content transformation, media migration, and cross-platform referencing.
+ * EXTERNAL PUBLICATION
+ * Migrates content to Sanity CMS and marks status as 'published'.
  */
-export async function approveAndPublishAction(
+export async function publishToSanityAction(
   articleId: string,
   eicOverrides: EicOverrides = {},
 ): Promise<ActionResponse<{ sanityId: string }>> {
   const supabase = await createSupabase();
 
   try {
-    // 1. Authentication & Permission Check
+    // 1. Auth & Admin Permission Check
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      return {
-        success: false,
-        error: createError(
-          "AUTH_UNAUTHORIZED",
-          "Session expired. Please log in.",
-        ),
-      };
-    }
-
     const { data: adminProfile } = await supabase
       .from("profiles")
       .select("permissions, sanity_author_id")
-      .eq("id", userData.user.id)
+      .eq("id", userData.user?.id)
       .single();
 
     if (!adminProfile?.permissions?.includes("admin")) {
       return {
         success: false,
-        error: createError(
-          "AUTH_UNAUTHORIZED",
-          "Unauthorized: Admin access required.",
-        ),
+        error: createError("AUTH_UNAUTHORIZED", "Admin access required."),
       };
     }
 
     // 2. Fetch Source Content from Supabase
-    const { data: article, error: dbError } = (await supabase
+    const { data: article } = (await supabase
       .from("article_workflow")
       .select(`*, profiles(sanity_author_id)`)
       .eq("id", articleId)
-      .single()) as { data: ArticleWorkflowRow | null; error: unknown };
+      .single()) as { data: ArticleWorkflowRow | null };
 
-    if (dbError || !article) {
+    if (!article)
       return {
         success: false,
-        error: createError(
-          "NOT_FOUND",
-          "The requested draft could not be found.",
-        ),
+        error: createError("NOT_FOUND", "Article not found."),
       };
-    }
 
-    // 3. Transformation Phase (Strictly Typed)
+    // 3. Transform Content (Tiptap JSON -> Sanity Portable Text)
     const rawPortableText = tiptapToPortableText(article.content.content);
     const categoryRef = getSanityCategoryId(article.category);
 
-    // 4. Media Migration (Main & Inline)
+    // 4. Media Migration: Featured Image
     let mainImageAssetId: string | null = null;
     if (article.featured_image_url) {
       const imgRes = await fetch(article.featured_image_url);
@@ -77,40 +61,30 @@ export async function approveAndPublishAction(
       mainImageAssetId = asset._id;
     }
 
+    // 5. Media Migration: Inline Tiptap Images
     const finalBody = await Promise.all(
       rawPortableText.map(async (block) => {
-        // We only process blocks that the transformer flagged as having temp URLs
-        if (
-          block._type === "inlineImage" &&
-          "_tempUrl" in block &&
-          typeof block._tempUrl === "string"
-        ) {
+        if (block._type === "inlineImage" && "_tempUrl" in block) {
           try {
-            const inlineRes = await fetch(block._tempUrl);
+            const inlineRes = await fetch(block._tempUrl as string);
             const inlineAsset = await sanity.assets.upload(
               "image",
               await inlineRes.blob(),
             );
-
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { _tempUrl, ...cleanBlock } = block;
             return {
               ...cleanBlock,
               asset: { _type: "reference", _ref: inlineAsset._id },
             };
           } catch (e) {
-            console.error(
-              "Inline image migration failed, skipping block asset.",
-              e,
-            );
             return block;
-          }
+          } // Fallback to block without asset if upload fails
         }
         return block;
       }),
     );
 
-    // 5. Sanity Document Creation
+    // 6. Create Sanity Document
     const sanityDoc = await sanity.create({
       _type: "post",
       title: article.title,
@@ -122,30 +96,16 @@ export async function approveAndPublishAction(
       excerpt: article.excerpt,
       body: finalBody,
       publishedAt: new Date().toISOString(),
-      isBreaking: eicOverrides.isBreaking ?? false,
+      isBreaking: eicOverrides.isBreaking ?? article.is_breaking,
       supabaseId: article.id,
-
-      // SEO & Social Configuration
       seo: {
         _type: "object",
         metaTitle: eicOverrides.metaTitle || article.title,
-        metaDesc: eicOverrides.metaDesc || article.excerpt,
+        metaDesc: article.excerpt,
       },
-
-      // Editorial Accountability References
-      author: {
-        _type: "reference",
-        _ref: article.profiles.sanity_author_id,
-      },
-      editor: {
-        _type: "reference",
-        _ref: adminProfile.sanity_author_id,
-      },
-      category: {
-        _type: "reference",
-        _ref: categoryRef,
-      },
-
+      author: { _type: "reference", _ref: article.profiles.sanity_author_id },
+      editor: { _type: "reference", _ref: adminProfile.sanity_author_id },
+      category: { _type: "reference", _ref: categoryRef },
       mainImage: mainImageAssetId
         ? {
             _type: "image",
@@ -155,7 +115,7 @@ export async function approveAndPublishAction(
         : undefined,
     });
 
-    // 6. Update Workflow Status in Supabase
+    // 7. Final Step: Mark as Published in Supabase
     const { error: updateError } = await supabase
       .from("article_workflow")
       .update({
@@ -170,14 +130,15 @@ export async function approveAndPublishAction(
         success: false,
         error: createError(
           "DB_FETCH_FAILED",
-          "Sanity created, but failed to update Supabase status.",
+          "Article live on Sanity, but Supabase sync failed.",
         ),
       };
     }
 
+    revalidatePath("/admin/queue");
     return { success: true, data: { sanityId: sanityDoc._id } };
-  } catch (err: unknown) {
-    console.error("Critical Publishing Failure:", err);
+  } catch (err: any) {
+    console.error("Critical Publication Failure:", err);
     return { success: false, error: parseUnknownError(err) };
   }
 }
