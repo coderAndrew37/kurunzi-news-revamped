@@ -5,7 +5,16 @@ import TagSelector from "@/app/_components/editor/TagSelector";
 import { saveDraftAction } from "@/lib/actions/articles";
 import { uploadMediaAction } from "@/lib/actions/media";
 import { ActionResponse, WriterDraft } from "@/types/editor";
-import { Globe, ImageIcon, Loader2, Save, X, Zap } from "lucide-react";
+import {
+  Globe,
+  ImageIcon,
+  Loader2,
+  Save,
+  X,
+  Zap,
+  Send,
+  Info,
+} from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -27,7 +36,8 @@ export default function NewArticleClient({
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // 1. Initialize State with persistence check
+
+  // 1. Initialize State
   const [article, setArticle] = useState<WriterDraft>(() => {
     if (initialData) return initialData;
 
@@ -38,6 +48,7 @@ export default function NewArticleClient({
 
     return {
       title: "",
+      slug: "",
       category: initialCategories[0]?.slug || "",
       excerpt: "",
       status: "draft",
@@ -74,16 +85,16 @@ export default function NewArticleClient({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true); // Start loading
+    setIsUploading(true);
     const formData = new FormData();
     formData.append("file", file);
 
     const promise = uploadMediaAction(formData);
 
     toast.promise(promise, {
-      loading: "Uploading media to CDN...",
+      loading: "Uploading master media...",
       success: (result) => {
-        setIsUploading(false); // Stop loading on success
+        setIsUploading(false);
         if (result.success) {
           setArticle((prev) => ({ ...prev, featuredImage: result.url }));
           return "Image processed successfully";
@@ -91,45 +102,51 @@ export default function NewArticleClient({
         throw new Error(result.error);
       },
       error: (err) => {
-        setIsUploading(false); // Stop loading on error
+        setIsUploading(false);
         return `Upload failed: ${err.message}`;
       },
     });
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
+  const handleAction = async (
+    targetStatus: WriterDraft["status"] = "draft",
+  ) => {
+    const isSubmission = targetStatus === "pending_review";
+    isSubmission ? setIsSubmitting(true) : setIsSaving(true);
 
-    // Cast the result to our known response type
-    const result = (await saveDraftAction(article)) as ActionResponse;
+    const payload = {
+      ...article,
+      status: targetStatus,
+      slug: article.slug || slugify(article.title),
+    };
+
+    const result = (await saveDraftAction(payload)) as ActionResponse;
 
     if (result.success) {
-      toast.success("Story successfully synced to workflow");
+      toast.success(
+        isSubmission
+          ? "Story submitted for editorial review"
+          : "Draft saved to cloud",
+      );
       if (!initialData) localStorage.removeItem(STORAGE_KEY);
+      if (isSubmission) router.push("/writer/dashboard");
     } else if (result.error) {
-      // 1. Handle Zod validation errors (Record<string, string[]>)
       if (typeof result.error === "object") {
         Object.entries(result.error).forEach(([field, messages]) => {
-          // Accessing the first message for each field
           toast.error(`${field}: ${messages[0]}`);
         });
-      }
-      // 2. Handle generic string errors
-      else {
+      } else {
         toast.error(result.error);
       }
-    } else {
-      // Fallback for unexpected states
-      toast.error("An unexpected system error occurred.");
     }
 
-    setIsSaving(false);
+    isSubmission ? setIsSubmitting(false) : setIsSaving(false);
   };
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-6 pb-40">
-      {/* Editorial Header: Context & Breaking Toggle */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-10 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
+      {/* Editorial Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-10 bg-slate-50 p-5 rounded-4xl border border-slate-100">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <Globe size={16} className="text-slate-400" />
@@ -179,8 +196,17 @@ export default function NewArticleClient({
         className="text-6xl font-black w-full outline-none mb-4 placeholder:text-slate-100 tracking-tighter leading-[1.1]"
         placeholder="Enter Headline..."
         value={article.title}
-        onChange={(e) => setArticle({ ...article, title: e.target.value })}
+        onChange={handleTitleChange}
       />
+
+      <div className="flex items-center gap-2 mb-8 text-slate-400 font-mono text-xs overflow-hidden">
+        <span className="bg-slate-100 px-2 py-1 rounded text-[10px]">
+          URL SLUG
+        </span>
+        <span className="truncate whitespace-nowrap">
+          /news/{article.slug || "your-headline-here"}
+        </span>
+      </div>
 
       <textarea
         placeholder="Start with a strong lede (summary)..."
@@ -190,7 +216,7 @@ export default function NewArticleClient({
         onChange={(e) => setArticle({ ...article, excerpt: e.target.value })}
       />
 
-      {/* Media Management Section */}
+      {/* Featured Media Section */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-16">
         <div className="lg:col-span-3">
           {article.featuredImage ? (
@@ -235,15 +261,28 @@ export default function NewArticleClient({
           )}
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1">
+              Alt Text <Info size={10} />
+            </label>
+            <input
+              className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] outline-none focus:bg-white transition-all"
+              placeholder="Accessibility description..."
+              value={article.imageAlt}
+              onChange={(e) =>
+                setArticle({ ...article, imageAlt: e.target.value })
+              }
+            />
+          </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
               Caption
             </label>
             <textarea
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs outline-none focus:bg-white focus:ring-4 focus:ring-red-500/5 transition-all resize-none"
+              className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] outline-none focus:bg-white transition-all resize-none"
               placeholder="Describe the scene..."
-              rows={3}
+              rows={2}
               value={article.imageCaption}
               onChange={(e) =>
                 setArticle({ ...article, imageCaption: e.target.value })
@@ -255,7 +294,7 @@ export default function NewArticleClient({
               Image Source
             </label>
             <input
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs outline-none focus:bg-white focus:ring-4 focus:ring-red-500/5 transition-all"
+              className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] outline-none focus:bg-white transition-all"
               placeholder="e.g. Getty Images"
               value={article.imageSource}
               onChange={(e) =>
@@ -297,7 +336,6 @@ export default function NewArticleClient({
         </div>
       </div>
 
-      {/* Tiptap Editor */}
       <NewsEditor
         initialContent={article.content}
         onUpdate={(json) => setArticle({ ...article, content: json })}
@@ -307,28 +345,42 @@ export default function NewArticleClient({
       <div className="fixed bottom-0 left-0 right-0 p-8 bg-white/80 backdrop-blur-2xl border-t border-slate-100 flex justify-between items-center z-50">
         <div className="hidden md:flex items-center gap-3">
           <div
-            className={`w-2.5 h-2.5 rounded-full ${isSaving ? "bg-amber-500 animate-pulse" : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"}`}
+            className={`w-2.5 h-2.5 rounded-full ${isSaving || isSubmitting ? "bg-amber-500 animate-pulse" : "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"}`}
           />
           <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">
-            {isSaving ? "Cloud Sync in Progress" : "Editorial Workspace Safe"}
+            {isSaving || isSubmitting
+              ? "Cloud Sync in Progress"
+              : "Editorial Workspace Safe"}
           </span>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={isSaving || isUploading}
-          className="group relative bg-red-600 disabled:bg-slate-300 text-white px-14 py-5 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-red-500/40 hover:bg-red-700 hover:-translate-y-1 transition-all active:scale-95 flex items-center gap-3 overflow-hidden"
-        >
-          {isSaving ? (
-            <Loader2 className="animate-spin" size={18} />
-          ) : (
-            <Save
-              size={18}
-              className="group-hover:rotate-12 transition-transform"
-            />
-          )}
-          <span>{initialData ? "Update Story" : "Finalize Draft"}</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => handleAction("draft")}
+            disabled={isSaving || isSubmitting || isUploading}
+            className="group bg-white border border-slate-200 text-slate-900 px-8 py-5 rounded-full font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-50 transition-all active:scale-95 flex items-center gap-3"
+          >
+            {isSaving ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <Save size={18} />
+            )}
+            <span>Save Draft</span>
+          </button>
+
+          <button
+            onClick={() => handleAction("pending_review")}
+            disabled={isSaving || isSubmitting || isUploading}
+            className="group relative bg-red-600 disabled:bg-slate-300 text-white px-10 py-5 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-red-500/40 hover:bg-red-700 hover:-translate-y-1 transition-all active:scale-95 flex items-center gap-3 overflow-hidden"
+          >
+            {isSubmitting ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <Send size={18} />
+            )}
+            <span>Submit for Review</span>
+          </button>
+        </div>
       </div>
     </div>
   );
