@@ -8,17 +8,18 @@ import {
   Globe,
   Image as ImageIcon,
   Loader2,
+  MessageSquare,
   Search,
   Send,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import NewsEditor from "@/app/_components/editor/ArticleEditor";
 import { approveArticleAction } from "@/lib/actions/approve";
+import { rejectArticleAction } from "@/lib/actions/articles";
 import { publishToSanityAction } from "@/lib/actions/publish";
-import { fetchEditorMetadata } from "@/lib/sanity/api";
 import { ArticleWorkflowRow, EicOverrides } from "@/types/database";
 import { EditorMetadata, TiptapNode } from "@/types/editor";
 
@@ -209,6 +210,27 @@ function EditorialSidebar({
   setArticle,
   meta,
 }: SidebarProps) {
+  const [rejectNote, setRejectNote] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+
+  const handleReject = async () => {
+    if (!rejectNote.trim())
+      return toast.error("Please provide a reason for rejection.");
+    setIsRejecting(true);
+
+    const result = await rejectArticleAction(article.id, rejectNote);
+
+    if (result.success) {
+      toast.success("Article sent back to writer with feedback.");
+      window.location.href = "/admin/queue";
+    } else {
+      toast.error(
+        typeof result.error === "string" ? result.error : "Failed to reject",
+      );
+    }
+    setIsRejecting(false);
+  };
+
   return (
     <section className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl">
       <h3 className="flex items-center gap-2 font-black uppercase text-[10px] tracking-[0.2em] mb-8 text-slate-400">
@@ -285,6 +307,31 @@ function EditorialSidebar({
               </option>
             ))}
           </select>
+        </div>
+
+        {/* REJECTION BLOCK */}
+        <div className="pt-8 mt-8 border-t border-slate-800 space-y-4">
+          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+            <MessageSquare size={12} className="text-amber-500" />
+            Return with Feedback
+          </label>
+          <textarea
+            placeholder="What needs fixing? (e.g. 'Update lede', 'Add source')..."
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+            className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 text-xs outline-none focus:border-red-500 transition-all min-h-24 placeholder:text-slate-600"
+          />
+          <button
+            onClick={handleReject}
+            disabled={isRejecting}
+            className="w-full py-4 bg-transparent border-2 border-red-900/50 text-red-500 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+          >
+            {isRejecting ? (
+              <Loader2 className="animate-spin" size={14} />
+            ) : (
+              "Reject & Send Back"
+            )}
+          </button>
         </div>
       </div>
     </section>

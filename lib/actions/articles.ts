@@ -7,58 +7,54 @@ import { ArticleSchema } from "../validation/article";
 import { slugify } from "../utils/slugify";
 import { parseUnknownError } from "../utils/error-builder";
 
+/**
+ * UPDATED: Saves or Submits the article
+ */
 export async function saveDraftAction(
   rawData: WriterDraft,
 ): Promise<ActionResponse> {
   const supabase = await createClient();
 
-  // 1. Zod Validation
   const validated = ArticleSchema.safeParse(rawData);
   if (!validated.success) {
-    return {
-      success: false,
-      error: validated.error.flatten().fieldErrors,
-    };
+    return { success: false, error: validated.error.flatten().fieldErrors };
   }
 
-  // 2. Auth Check
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
   if (authError || !user) {
-    return {
-      success: false,
-      error: "Authentication required. Please log in again.",
-    };
+    return { success: false, error: "Authentication required." };
   }
 
-  // Generate a fallback slug if for some reason the client didn't provide one
   const finalSlug = rawData.slug || slugify(validated.data.title);
 
   try {
-    // 3. Main Article Upsert
-    // Note: We are now including 'slug', 'image_alt', and handling the 'status'
     const { data: article, error: articleError } = await supabase
       .from("article_workflow")
       .upsert({
         ...(rawData.id ? { id: rawData.id } : {}),
         writer_id: user.id,
         title: validated.data.title,
-        slug: finalSlug, // NEW: Persisting the slug for Sanity routing
+        slug: finalSlug,
         excerpt: validated.data.excerpt,
         category: validated.data.category,
-        content: validated.data.content, // Includes the rich inline images with metadata
+        content: validated.data.content,
         featured_image_url:
           typeof validated.data.featuredImage === "string"
             ? validated.data.featuredImage
             : null,
-        image_alt: rawData.imageAlt || "", // NEW: Alt text for featured image
+        image_alt: rawData.imageAlt || "",
         image_caption: validated.data.imageCaption,
         image_source: validated.data.imageSource,
         is_breaking: validated.data.isBreaking,
         site_context: validated.data.siteContext,
-        status: validated.data.status, // UPDATED: Correctly handles 'draft' or 'pending_review'
+        status: validated.data.status,
+        // Reset editor notes when a writer resubmits a rejected article
+        ...(validated.data.status === "pending_review"
+          ? { editor_notes: null }
+          : {}),
         updated_at: new Date().toISOString(),
       })
       .select()
@@ -66,50 +62,70 @@ export async function saveDraftAction(
 
     if (articleError) throw articleError;
 
-    // 4. Tag Syncing
+    // Tag Syncing Logic
     if (validated.data.tags && validated.data.tags.length > 0) {
-      // Step A: Upsert tags into the master tags table
       const tagInsertions = validated.data.tags.map((name: string) => ({
         name: name.trim(),
         slug: slugify(name),
       }));
 
-      const { data: syncedTags, error: tagsUpsertError } = await supabase
+      const { data: syncedTags } = await supabase
         .from("tags")
         .upsert(tagInsertions, { onConflict: "name" })
         .select("id");
 
-      if (tagsUpsertError) throw tagsUpsertError;
-
-      // Step B: Update Junction Table
-      // First, remove old associations
       await supabase.from("article_tags").delete().eq("article_id", article.id);
 
-      // Link new tag IDs to this article ID
       if (syncedTags) {
         const junctionRows = syncedTags.map((tag) => ({
           article_id: article.id,
           tag_id: tag.id,
         }));
-        const { error: junctionError } = await supabase
-          .from("article_tags")
-          .insert(junctionRows);
-
-        if (junctionError)
-          console.error("Junction linking failed:", junctionError);
+        await supabase.from("article_tags").insert(junctionRows);
       }
     }
 
-    // Revalidate relevant paths
     revalidatePath("/writer/dashboard");
-    revalidatePath("/admin/queue"); // Added so editors see the new submission immediately
-
-    return {
-      success: true,
-      articleId: article.id,
-    };
+    revalidatePath("/admin/queue");
+    return { success: true, articleId: article.id };
   } catch (err: unknown) {
-    const appError = parseUnknownError(err);
-    return { success: false, error: appError.message };
+    return { success: false, error: parseUnknownError(err).message };
+  }
+}
+
+/**
+ * NEW: Rejects an article and sends it back to the writer
+ */
+export async function rejectArticleAction(
+  articleId: string,
+  notes: string,
+): Promise<ActionResponse> {
+  const supabase = await createClient();
+
+  // Basic check: Ensure editor is authorized (implement your role check here if needed)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+
+  try {
+    const { error } = await supabase
+      .from("article_workflow")
+      .update({
+        status: "rejected",
+        editor_notes: notes,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", articleId);
+
+    if (error) throw error;
+
+    revalidatePath("/writer/dashboard");
+    revalidatePath("/admin/queue");
+    revalidatePath(`/admin/review/${articleId}`);
+
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: parseUnknownError(err).message };
   }
 }

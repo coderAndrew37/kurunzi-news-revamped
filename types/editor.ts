@@ -26,6 +26,7 @@ export interface WriterDraft {
   tags: string[];
   createdAt?: string;
   updatedAt?: string;
+  editorNotes?: string;
 }
 
 export interface ToolbarButtonProps {
