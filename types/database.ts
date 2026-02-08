@@ -39,5 +39,5 @@ export interface EicOverrides {
   metaTitle?: string;
   metaDesc?: string;
   isBreaking?: boolean;
-  siteContext?: "main" | "worldcup" | "elections";
+  siteContext?: string;
 }

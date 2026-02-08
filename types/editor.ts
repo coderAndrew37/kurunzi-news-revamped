@@ -126,3 +126,19 @@ export interface WorkflowItem {
   site_context: string;
   is_breaking: boolean;
 }
+
+export interface SanityCategory {
+  _id: string;
+  title: string;
+  slug: string;
+}
+
+export interface SanitySiteContext {
+  title: string;
+  value: string;
+}
+
+export interface EditorMetadata {
+  categories: SanityCategory[];
+  siteContexts: SanitySiteContext[];
+}

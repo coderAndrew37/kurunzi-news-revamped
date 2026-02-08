@@ -139,6 +139,15 @@ export const QUERIES = {
   }
 `,
 
+  getEditorMetadata: `{
+    "categories": *[_type == "category"] | order(title asc) {
+      _id,
+      title,
+      "slug": slug.current
+    },
+    "siteContexts": *[_type == "siteConfig"][0].availableContexts
+  }`,
+
   getPostsByTag: `
 {
   "posts": *[_type == "post" && $tag in tags[]->slug.current] | order(publishedAt desc) [$start...$end] {
@@ -268,4 +277,11 @@ export async function fetchPostsByTag(
 
 export async function fetchAuthorProfile(slug: string) {
   return await client.fetch(QUERIES.getAuthorProfile, { slug });
+}
+
+export async function fetchEditorMetadata() {
+  return await client.fetch<{
+    categories: { _id: string; title: string; slug: string }[];
+    siteContexts: { title: string; value: string }[];
+  }>(QUERIES.getEditorMetadata);
 }
