@@ -1,5 +1,3 @@
-// types/index.ts
-
 export interface SanityImage {
   _type: "image";
   asset: {
@@ -63,4 +61,10 @@ export interface HomepageSection {
   title: string;
   slug: string;
   posts: Post[]; // Now this works again!
+}
+
+export interface SidebarLink {
+  name: string;
+  href: string;
+  icon: string;
 }

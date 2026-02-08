@@ -1,4 +1,5 @@
 import Sidebar from "@/app/_components/dashboard/Sidebar";
+import { adminSidebarLinks } from "@/config/sidebar-links";
 import { createClient } from "@/lib/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -26,7 +27,8 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar role="admin" />
+      <Sidebar links={adminSidebarLinks} />
+
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-7xl mx-auto">{children}</div>
       </main>
