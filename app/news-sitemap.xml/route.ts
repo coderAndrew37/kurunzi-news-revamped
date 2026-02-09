@@ -22,7 +22,7 @@ export async function GET() {
               <news:name>Kurunzi News</news:name>
               <news:language>en</news:language>
             </news:publication>
-            <news:publication_date>${post.publishedAt}</news:publication_date>
+            <news:publication_date>${post.date}</news:publication_date>
             <news:title>${post.title}</news:title>
           </news:news>
         </url>

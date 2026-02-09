@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ArticleLink from "@/app/_components/ArticleLink";
+import { urlFor } from "@/lib/sanity/image";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -74,9 +75,9 @@ export default async function CategoryArchivePage({
             </div>
 
             {/* Right: Image Thumbnail */}
-            <div className="relative w-24 h-24 md:w-48 md:h-32 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+            <div className="relative w-24 h-24 md:w-48 md:h-32 shrink-0 overflow-hidden rounded-lg bg-slate-100">
               <Image
-                src={post.image || "/placeholder.png"}
+                src={post.image ? urlFor(post.image).url() : "/placeholder.png"}
                 alt={post.title}
                 fill
                 sizes="(max-width: 768px) 96px, 192px"
@@ -97,7 +98,7 @@ export default async function CategoryArchivePage({
             ← Previous
           </Link>
         ) : (
-          <div className="w-[120px]" /> /* Spacer to keep "Page X of Y" centered */
+          <div className="w-30" /> /* Spacer to keep "Page X of Y" centered */
         )}
 
         <span className="text-slate-400 uppercase tracking-widest">
@@ -112,7 +113,7 @@ export default async function CategoryArchivePage({
             Next →
           </Link>
         ) : (
-          <div className="w-[120px]" />
+          <div className="w-30" />
         )}
       </div>
     </main>

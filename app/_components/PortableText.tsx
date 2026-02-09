@@ -98,28 +98,37 @@ const components: PortableTextComponents = {
     },
 
     // --- INLINE IMAGE ---
-    inlineImage: ({ value }: { value: InlineImageValue }) => (
-      <figure className="my-10 space-y-2">
-        <div className="relative aspect-video w-full overflow-hidden rounded-xl shadow-md">
-          <Image
-            src={urlFor(value).url()}
-            alt={value.alt || "Article Image"}
-            fill
-            className="object-cover"
-          />
-        </div>
-        {(value.caption || value.attribution) && (
-          <figcaption className="text-sm text-slate-500 italic px-2 border-l-2 border-pd-red ml-1">
-            {value.caption}
-            {value.attribution && (
-              <span className="font-bold uppercase text-[10px] ml-2 tracking-tighter not-italic text-slate-400">
-                — {value.attribution}
-              </span>
-            )}
-          </figcaption>
-        )}
-      </figure>
-    ),
+    inlineImage: ({ value }: { value: InlineImageValue }) => {
+      // 1. Check if the asset exists
+      if (!value?.asset) {
+        console.error("Inline Image missing asset:", value);
+        return null; // Or return a placeholder div
+      }
+
+      return (
+        <figure className="my-10 space-y-2">
+          <div className="relative aspect-video w-full overflow-hidden rounded-xl shadow-md bg-slate-100">
+            <Image
+              src={urlFor(value).url()}
+              alt={value.alt || "Article Image"}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 50vw"
+              className="object-cover"
+            />
+          </div>
+          {(value.caption || value.attribution) && (
+            <figcaption className="text-sm text-slate-500 italic px-2 border-l-2 border-pd-red ml-1">
+              {value.caption}
+              {value.attribution && (
+                <span className="font-bold uppercase text-[10px] ml-2 tracking-tighter not-italic text-slate-400">
+                  — {value.attribution}
+                </span>
+              )}
+            </figcaption>
+          )}
+        </figure>
+      );
+    },
 
     // --- YOUTUBE ---
     youtube: ({ value }: { value: YouTubeValue }) => {

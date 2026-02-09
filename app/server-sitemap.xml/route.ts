@@ -9,7 +9,7 @@ export async function GET() {
 
   const fields = posts.map((post: NewsCardProps) => ({
     loc: `https://kurunzinews.co.ke/${post.category}/${post.slug}`,
-    lastmod: post.updatedAt,
+    lastmod: post.date,
     changefreq: "daily",
     priority: 0.7,
   }));

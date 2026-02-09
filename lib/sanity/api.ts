@@ -1,3 +1,4 @@
+import { QueryParams } from "next-sanity";
 import { sanityServerClient as client } from "./client";
 import { HomepageSection, Post } from "@/types";
 
@@ -150,6 +151,10 @@ export const QUERIES = {
 
   getPostsByTag: `
 {
+  "tagInfo": *[_type == "tag" && slug.current == $tag][0] {
+    title,
+    description
+  },
   "posts": *[_type == "post" && $tag in tags[]->slug.current] | order(publishedAt desc) [$start...$end] {
     _id, 
     title, 
@@ -199,7 +204,7 @@ export async function fetchRelatedArticles(
   );
 }
 
-export async function fetchLatestArticles(limit: number = 5) {
+export async function fetchLatestArticles(limit: number = 4) {
   return await client.fetch(
     QUERIES.getLatestArticles,
     { limit },
@@ -259,19 +264,21 @@ export async function searchArticles(term: string): Promise<Post[]> {
 export async function fetchPostsByTag(
   tag: string,
   page: number = 1,
-): Promise<{ posts: Post[]; total: number }> {
+): Promise<{
+  posts: Post[];
+  total: number;
+  tagInfo: { title: string; description?: string } | null;
+}> {
   const decodedTag = decodeURIComponent(tag);
   const start = (page - 1) * POSTS_PER_PAGE;
   const end = start + POSTS_PER_PAGE;
 
-  return client.fetch<{ posts: Post[]; total: number }>(
+  return client.fetch(
     QUERIES.getPostsByTag,
-    { tag: decodedTag, start, end },
-    {
-      fetchOptions: {
-        next: { revalidate: 60 },
-      },
-    },
+    // The "as any" here breaks the overload deadlock
+    // and allows the build to proceed.
+    { tag: decodedTag, start, end } as any,
+    { next: { revalidate: 60 } },
   );
 }
 

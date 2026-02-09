@@ -17,7 +17,8 @@ export default async function HomePage() {
 
         return (
           <NewsSection
-            key={section.slug} // Stable key is better for performance
+            key={section.slug}
+            slug={section.slug}
             title={section.title}
             posts={mappedPosts}
           />

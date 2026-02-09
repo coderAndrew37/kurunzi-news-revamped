@@ -39,7 +39,7 @@ export async function loginAction(values: z.infer<typeof LoginFormSchema>) {
 /**
  * FINALIZING THE INVITE
  */
-export async function finalizeInviteAction(formData: FormData) {
+export async function finalizeInviteAction(prevState: any, formData: FormData) {
   const supabase = await createClient();
 
   const rawData = Object.fromEntries(formData.entries());
@@ -47,22 +47,27 @@ export async function finalizeInviteAction(formData: FormData) {
 
   const validated = SetupPasswordSchema.safeParse(rawData);
   if (!validated.success) {
-    return { error: validated.error.flatten().fieldErrors };
+    return {
+      error: validated.error.flatten().fieldErrors,
+      success: false,
+    };
   }
 
   const { data: authData, error: authError } = await supabase.auth.updateUser({
     password: validated.data.password,
   });
 
-  if (authError) return { error: authError.message };
+  if (authError) return { error: authError.message, success: false };
 
   const { error: inviteError } = await supabase.rpc("accept_writer_invite", {
     provided_token: token,
     new_user_id: authData.user.id,
   });
 
-  if (inviteError) return { error: inviteError.message };
+  if (inviteError) return { error: inviteError.message, success: false };
 
+  // If redirecting here, the component's useEffect for success won't trigger,
+  // which is fine as the page will change.
   redirect("/onboarding");
 }
 
