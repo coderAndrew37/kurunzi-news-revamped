@@ -6,13 +6,13 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { X, Image as ImageIcon, CheckCircle2, Info } from "lucide-react";
 
 import EditorToolbar from "./Toolbar";
 import { uploadEditorImage } from "@/lib/editor/upload";
 
-// 1. Extended Image Node
+// 1. Extended Image Node to support Editorial Metadata
 const NewsImage = Image.extend({
   addAttributes() {
     return {
@@ -33,7 +33,9 @@ export default function NewsEditor({
   initialContent,
   onUpdate,
 }: NewsEditorProps) {
-  // Modal State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Modal & Upload State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingImage, setPendingImage] = useState<{
     url: string;
@@ -135,6 +137,7 @@ export default function NewsEditor({
       setIsModalOpen(false);
       setPendingImage(null);
       setMetadata({ alt: "", caption: "", source: "" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       alert("Upload failed.");
     } finally {
@@ -147,8 +150,24 @@ export default function NewsEditor({
   return (
     <div className="w-full bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm relative">
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-50">
-        <EditorToolbar editor={editor} />
+        <EditorToolbar
+          editor={editor}
+          onImageClick={() => fileInputRef.current?.click()}
+        />
       </div>
+
+      {/* HIDDEN FILE INPUT FOR TOOLBAR IMAGE BUTTON */}
+      <input
+        aria-label="hidden file input for toolbar image button"
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) prepareImageMetadata(file);
+        }}
+      />
 
       <div className="relative">
         <EditorContent editor={editor} />
@@ -172,7 +191,7 @@ export default function NewsEditor({
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
               <div className="absolute bottom-6 left-6 text-white flex items-center gap-2">
                 <ImageIcon size={16} />
                 <span className="text-[10px] font-black uppercase tracking-widest">

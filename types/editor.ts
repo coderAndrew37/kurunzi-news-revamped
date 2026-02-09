@@ -1,5 +1,8 @@
 import { JSONContent } from "@tiptap/react";
 import { ReactNode } from "react";
+import { TypedObject } from "@portabletext/types";
+
+// --- ARTICLE CORE TYPES ---
 
 export type ArticleStatus =
   | "draft"
@@ -14,13 +17,13 @@ export interface WriterDraft {
   excerpt: string;
   category: string;
   featuredImage: string | File | null;
-  // New Editorial Fields from Sanity Schema
+  // Editorial Metadata
   imageCaption?: string;
   imageSource?: string;
-  imageAlt?: string; // Add this
+  imageAlt?: string;
   isBreaking?: boolean;
   siteContext?: string;
-  // Core Fields
+  // Content & Status
   content: JSONContent;
   status: ArticleStatus;
   tags: string[];
@@ -29,20 +32,23 @@ export interface WriterDraft {
   editorNotes?: string;
 }
 
+// --- UI & TOOLBAR TYPES ---
+
 export interface ToolbarButtonProps {
   children: ReactNode;
   onClick: () => void;
   active?: boolean;
+  title?: string; // Added for hover tooltips (Display Title)
 }
+
 export interface InternalLink {
   title: string;
   category: string;
   slug: string;
 }
 
-import { TypedObject } from "@portabletext/types";
+// --- TIPTAP JSON STRUCTURE ---
 
-// Tiptap's JSON Structure
 export interface TiptapNode {
   type:
     | "paragraph"
@@ -58,8 +64,10 @@ export interface TiptapNode {
     level?: number;
     src?: string;
     alt?: string;
-    caption?: string;
+    caption?: string; // For Inline Images
+    source?: string; // For Image Photo Credit/Source
     href?: string;
+    url?: string; // For YouTube videos
   };
   content?: TiptapNode[];
   text?: string;
@@ -69,7 +77,8 @@ export interface TiptapNode {
   }>;
 }
 
-// Sanity's Portable Text Structure
+// --- SANITY PORTABLE TEXT STRUCTURE ---
+
 export interface SanityBlock extends TypedObject {
   _type: "block";
   _key: string;
@@ -104,6 +113,7 @@ export interface SanityImageBlock extends TypedObject {
   _key: string;
   alt: string;
   caption?: string;
+  attribution?: string; // Maps to Tiptap 'source' / Writer 'imageSource'
   _tempUrl?: string; // Used only during transition
   asset?: {
     _type: "reference";
@@ -111,10 +121,12 @@ export interface SanityImageBlock extends TypedObject {
   };
 }
 
+// --- API & WORKFLOW TYPES ---
+
 export type ActionResponse = {
   success: boolean;
   articleId?: string;
-  error?: string | Record<string, string[]>; // Handles both generic strings and Zod flattened errors
+  error?: string | Record<string, string[]>; // Generic or Zod flattened errors
   warning?: string;
 };
 
