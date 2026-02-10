@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ArticleLink from "@/app/_components/ArticleLink";
-import { urlFor } from "@/lib/sanity/image";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -16,22 +15,21 @@ export default async function CategoryArchivePage({
   params,
   searchParams,
 }: PageProps) {
-  // 1. Await the asynchronous params (Required in Next.js 15+)
+  // 1. Await the asynchronous params (Next.js 15+ Requirement)
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
 
   const categorySlug = resolvedParams.category;
   const currentPage = parseInt(resolvedSearchParams.page || "1");
 
-  // 2. Fetch data with the resolved string slug
+  // 2. Fetch data
   const data = await fetchCategoryArchive(categorySlug, currentPage);
 
-  // 3. Safety check - if category doesn't exist in Sanity
   if (!data || !data.category) {
     notFound();
   }
 
-  // 4. Map the raw Sanity data to our UI-friendly props
+  // 3. Map the data
   const posts = data.posts.map(mapPostToUi);
   const totalPages = Math.ceil(data.total / POSTS_PER_PAGE);
 
@@ -43,7 +41,7 @@ export default async function CategoryArchivePage({
           {data.category.title} <span className="text-pd-red">Archive</span>
         </h1>
         <p className="text-slate-500 mt-2 font-medium">
-          Showing {posts.length} of {data.total} total articles in this category
+          Showing {posts.length} of {data.total} total articles
         </p>
       </header>
 
@@ -52,8 +50,8 @@ export default async function CategoryArchivePage({
         {posts.map((post: NewsCardProps) => (
           <ArticleLink
             key={post.slug}
-            categorySlug={post.category} // Uses the slug from the mapper
-            slug={post.slug} // Uses the flattened slug string
+            categorySlug={post.category} // Pass the slug from the mapper
+            slug={post.slug}
             className="group flex flex-row gap-6 items-start border-b pb-8 border-slate-100 transition-all hover:bg-slate-50/50 p-2 -mx-2 rounded-xl"
           >
             {/* Left: Text Content */}
@@ -65,7 +63,7 @@ export default async function CategoryArchivePage({
                 {post.title}
               </h2>
               {post.excerpt && (
-                <p className="text-slate-600 line-clamp-2 text-sm md:text-base hidden md:block">
+                <p className="text-slate-600 line-clamp-2 text-sm md:text-base hidden md:block font-serif">
                   {post.excerpt}
                 </p>
               )}
@@ -75,13 +73,14 @@ export default async function CategoryArchivePage({
             </div>
 
             {/* Right: Image Thumbnail */}
-            <div className="relative w-24 h-24 md:w-48 md:h-32 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+            <div className="relative w-24 h-24 md:w-48 md:h-32 shrink-0 overflow-hidden rounded-lg bg-slate-100 shadow-sm">
               <Image
-                src={post.image ? urlFor(post.image).url() : "/placeholder.png"}
+                /* Using post.image directly as it is already a URL string */
+                src={(post.image as string) || "/placeholder.png"}
                 alt={post.title}
                 fill
                 sizes="(max-width: 768px) 96px, 192px"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
               />
             </div>
           </ArticleLink>
@@ -92,28 +91,28 @@ export default async function CategoryArchivePage({
       <div className="mt-16 flex justify-between items-center font-bold text-sm">
         {currentPage > 1 ? (
           <Link
-            href={`/${categorySlug}/archive?page=${currentPage - 1}`}
+            href={`/category/${categorySlug}/archive?page=${currentPage - 1}`}
             className="px-6 py-3 bg-black text-white rounded-full hover:bg-pd-red transition-all flex items-center gap-2"
           >
             ← Previous
           </Link>
         ) : (
-          <div className="w-30" /> /* Spacer to keep "Page X of Y" centered */
+          <div className="w-24" />
         )}
 
-        <span className="text-slate-400 uppercase tracking-widest">
+        <span className="text-slate-400 uppercase tracking-widest text-xs">
           Page {currentPage} of {totalPages}
         </span>
 
         {currentPage < totalPages ? (
           <Link
-            href={`/${categorySlug}/archive?page=${currentPage + 1}`}
+            href={`/category/${categorySlug}/archive?page=${currentPage + 1}`}
             className="px-6 py-3 bg-black text-white rounded-full hover:bg-pd-red transition-all flex items-center gap-2"
           >
             Next →
           </Link>
         ) : (
-          <div className="w-30" />
+          <div className="w-24" />
         )}
       </div>
     </main>

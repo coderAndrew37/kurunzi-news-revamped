@@ -74,7 +74,7 @@ export default async function ArticlePage({
 
   // Concurrent data fetching
   const [latestArticles, relatedRaw]: [Post[], Post[]] = await Promise.all([
-    fetchLatestArticles(6),
+    fetchLatestArticles(4),
     fetchRelatedArticles(article.categorySlug, article._id),
   ]);
 
