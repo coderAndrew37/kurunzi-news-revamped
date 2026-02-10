@@ -71,19 +71,24 @@ export async function publishToSanityAction(
               "image",
               await inlineRes.blob(),
             );
+
+            // Destructure _tempUrl out, but keep attribution, caption, and alt
             const { _tempUrl, ...cleanBlock } = block;
+
             return {
               ...cleanBlock,
               asset: { _type: "reference", _ref: inlineAsset._id },
             };
           } catch (e) {
-            return block;
-          } // Fallback to block without asset if upload fails
+            // If upload fails, we MUST remove _tempUrl so Sanity doesn't reject the doc
+            // and add a null asset so your frontend guard works.
+            const { _tempUrl, ...failedBlock } = block;
+            return { ...failedBlock, asset: null };
+          }
         }
         return block;
       }),
     );
-
     // 6. Create Sanity Document
     const sanityDoc = await sanity.create({
       _type: "post",
@@ -110,7 +115,10 @@ export async function publishToSanityAction(
         ? {
             _type: "image",
             asset: { _type: "reference", _ref: mainImageAssetId },
-            alt: article.title,
+            // Use specific metadata from Supabase, falling back to title only if empty
+            alt: article.image_alt || article.title,
+            caption: article.image_caption,
+            attribution: article.image_source, // Matches Sanity schema 'attribution'
           }
         : undefined,
     });

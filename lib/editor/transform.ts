@@ -32,11 +32,15 @@ export function tiptapToPortableText(nodes: TiptapNode[]): any[] {
           } as SanityYoutubeBlock;
 
         case "image":
+          // Mapping Tiptap attrs to SanityImageBlock structure
           return {
             _type: "inlineImage",
             _key,
             alt: node.attrs?.alt || "News image",
             caption: node.attrs?.caption,
+            // BRIDGE: Map Tiptap's 'source' to Sanity's 'attribution'
+            attribution: node.attrs?.source,
+            // Carry the URL so publishToSanityAction can perform the asset upload
             _tempUrl: node.attrs?.src,
           } as SanityImageBlock;
 
@@ -48,6 +52,9 @@ export function tiptapToPortableText(nodes: TiptapNode[]): any[] {
     .filter(Boolean);
 }
 
+/**
+ * Transforms standard text nodes into Sanity Block format
+ */
 function transformTextBlock(node: TiptapNode, _key: string): SanityBlock {
   const markDefs: any[] = [];
 
@@ -90,10 +97,13 @@ function transformTextBlock(node: TiptapNode, _key: string): SanityBlock {
   };
 }
 
+/**
+ * Handles nested list structures
+ */
 function transformList(node: TiptapNode): SanityBlock[] {
   return (node.content || [])
     .map((listItem) => {
-      // Dig into the paragraph inside the listItem
+      // Tiptap lists nest content inside a listItem node
       const contentNode = listItem.content?.[0];
       if (!contentNode) return null;
 

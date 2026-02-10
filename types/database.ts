@@ -29,6 +29,10 @@ export interface ArticleWorkflowRow {
     sanity_author_id: string;
     full_name: string;
   };
+
+  image_alt: string | null;
+  image_caption: string | null;
+  image_source: string | null;
 }
 
 /**
