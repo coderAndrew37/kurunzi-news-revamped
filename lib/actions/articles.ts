@@ -8,29 +8,47 @@ import { slugify } from "../utils/slugify";
 import { parseUnknownError } from "../utils/error-builder";
 
 /**
- * UPDATED: Saves or Submits the article
+ * Saves or Submits the article.
+ * Handles validation, Supabase upsert, and tag synchronization.
  */
 export async function saveDraftAction(
   rawData: WriterDraft,
 ): Promise<ActionResponse> {
   const supabase = await createClient();
 
+  // 1. Initial Trace
+  console.log(
+    `[ACTION_START] Status: ${rawData.status} | Title: ${rawData.title.substring(0, 20)}...`,
+  );
+
+  // 2. Validation
   const validated = ArticleSchema.safeParse(rawData);
   if (!validated.success) {
-    return { success: false, error: validated.error.flatten().fieldErrors };
+    const fieldErrors = validated.error.flatten().fieldErrors;
+    console.error("[VALIDATION_FAILED]:", JSON.stringify(fieldErrors, null, 2));
+    return {
+      success: false,
+      error: fieldErrors,
+    };
   }
 
+  // 3. Auth Check
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
+
   if (authError || !user) {
+    console.error("[AUTH_FAILED]:", authError?.message);
     return { success: false, error: "Authentication required." };
   }
 
   const finalSlug = rawData.slug || slugify(validated.data.title);
 
   try {
+    // 4. Database Upsert
+    console.log("[DB_UPSERT_ATTEMPT]: Sending payload to Supabase...");
+
     const { data: article, error: articleError } = await supabase
       .from("article_workflow")
       .upsert({
@@ -45,7 +63,7 @@ export async function saveDraftAction(
           typeof validated.data.featuredImage === "string"
             ? validated.data.featuredImage
             : null,
-        image_alt: rawData.imageAlt || "",
+        image_alt: validated.data.imageAlt || "",
         image_caption: validated.data.imageCaption,
         image_source: validated.data.imageSource,
         is_breaking: validated.data.isBreaking,
@@ -60,36 +78,72 @@ export async function saveDraftAction(
       .select()
       .single();
 
-    if (articleError) throw articleError;
+    if (articleError) {
+      console.error("[SUPABASE_DATABASE_ERROR]:", articleError);
+      throw articleError;
+    }
 
-    // Tag Syncing Logic
+    console.log(`[DB_UPSERT_SUCCESS]: Article ID ${article.id}`);
+
+    // 5. Tag Syncing Logic (Wrapped to be more resilient)
     if (validated.data.tags && validated.data.tags.length > 0) {
+      console.log("[TAG_SYNC_START]: Processing tags...");
+
       const tagInsertions = validated.data.tags.map((name: string) => ({
         name: name.trim(),
         slug: slugify(name),
       }));
 
-      const { data: syncedTags } = await supabase
+      const { data: syncedTags, error: tagUpsertError } = await supabase
         .from("tags")
         .upsert(tagInsertions, { onConflict: "name" })
         .select("id");
 
+      if (tagUpsertError) {
+        console.error("[TAG_UPSERT_ERROR]:", tagUpsertError);
+        // We throw here because you fixed the RLS, but in production,
+        // you might want to log this and continue if tags aren't critical.
+        throw tagUpsertError;
+      }
+
+      // Sync junction table
       await supabase.from("article_tags").delete().eq("article_id", article.id);
 
-      if (syncedTags) {
+      if (syncedTags && syncedTags.length > 0) {
         const junctionRows = syncedTags.map((tag) => ({
           article_id: article.id,
           tag_id: tag.id,
         }));
-        await supabase.from("article_tags").insert(junctionRows);
+        const { error: junctionError } = await supabase
+          .from("article_tags")
+          .insert(junctionRows);
+
+        if (junctionError) console.error("[JUNCTION_ERROR]:", junctionError);
       }
+      console.log("[TAG_SYNC_COMPLETE]");
     }
 
+    // 6. Revalidation
+    console.log("[REVALIDATE_START]: Updating cache paths...");
     revalidatePath("/writer/dashboard");
     revalidatePath("/admin/queue");
+    console.log("[REVALIDATE_SUCCESS]");
+
     return { success: true, articleId: article.id };
-  } catch (err: unknown) {
-    return { success: false, error: parseUnknownError(err).message };
+  } catch (err: any) {
+    // 7. Extract the most useful message possible for the client
+    const errorMessage =
+      err?.message || err?.details || "An unexpected database error occurred";
+
+    console.error("[CRITICAL_SERVER_ACTION_ERROR]:", {
+      message: errorMessage,
+      code: err?.code,
+    });
+
+    return {
+      success: false,
+      error: `Server Error (${err?.code || "500"}): ${errorMessage}`,
+    };
   }
 }
 

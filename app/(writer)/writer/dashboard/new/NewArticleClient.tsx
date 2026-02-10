@@ -43,11 +43,6 @@ export default function NewArticleClient({
   const [article, setArticle] = useState<WriterDraft>(() => {
     if (initialData) return initialData;
 
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    }
-
     return {
       title: "",
       slug: "",
@@ -65,6 +60,26 @@ export default function NewArticleClient({
       editorNotes: "",
     };
   });
+
+  // Restore draft from local storage
+  useEffect(() => {
+    if (!initialData) {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        console.log("Restoring draft from local storage...");
+        setArticle(JSON.parse(saved));
+      }
+    }
+  }, [initialData]);
+  useEffect(() => {
+    if (!initialData) {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        console.log("Restoring draft from local storage...");
+        setArticle(JSON.parse(saved));
+      }
+    }
+  }, [initialData]);
 
   // 2. Lock Logic: Only allow editing if status is 'draft' or 'rejected'
   const canEdit = article.status === "draft" || article.status === "rejected";
@@ -122,33 +137,59 @@ export default function NewArticleClient({
     const isSubmission = targetStatus === "pending_review";
     isSubmission ? setIsSubmitting(true) : setIsSaving(true);
 
-    const payload = {
-      ...article,
-      status: targetStatus,
-      slug: article.slug || slugify(article.title),
-    };
+    const payload = { ...article, status: targetStatus };
 
-    const result = (await saveDraftAction(payload)) as ActionResponse;
+    console.log("Submitting Payload:", payload);
 
-    if (result.success) {
-      toast.success(
-        isSubmission
-          ? "Story submitted for editorial review"
-          : "Draft saved to cloud",
-      );
-      if (!initialData) localStorage.removeItem(STORAGE_KEY);
-      if (isSubmission) router.push("/writer/dashboard");
-    } else if (result.error) {
-      if (typeof result.error === "object") {
-        Object.entries(result.error).forEach(([field, messages]) => {
-          toast.error(`${field}: ${messages[0]}`);
-        });
+    try {
+      const result = (await saveDraftAction(payload)) as ActionResponse;
+      console.log("Server Response:", result);
+
+      if (result.success) {
+        toast.success(isSubmission ? "Story submitted!" : "Draft saved");
+
+        // Wipe the physical storage
+        localStorage.removeItem(STORAGE_KEY);
+
+        if (isSubmission) {
+          // Clear local state before navigating to ensure it's gone from memory
+          setArticle({
+            title: "",
+            slug: "",
+            category: initialCategories[0]?.slug || "",
+            excerpt: "",
+            status: "draft",
+            featuredImage: null,
+            imageAlt: "",
+            imageCaption: "",
+            imageSource: "",
+            isBreaking: false,
+            siteContext: "main",
+            tags: [],
+            content: { type: "doc", content: [] },
+            editorNotes: "",
+          });
+
+          router.push("/writer/dashboard");
+          router.refresh();
+        }
       } else {
-        toast.error(result.error);
+        // Handle Validation Object or String Errors
+        if (typeof result.error === "object") {
+          console.table(result.error);
+          Object.entries(result.error).forEach(([field, messages]) => {
+            toast.error(`${field}: ${messages[0]}`);
+          });
+        } else {
+          toast.error(result.error);
+        }
       }
+    } catch (clientErr) {
+      console.error("Client side crash calling action:", clientErr);
+      toast.error("A system error occurred. Check console.");
+    } finally {
+      isSubmission ? setIsSubmitting(false) : setIsSaving(false);
     }
-
-    isSubmission ? setIsSubmitting(false) : setIsSaving(false);
   };
 
   return (
