@@ -7,6 +7,7 @@ import { TiptapNode } from "./editor"; // Adjust path to your TiptapNode definit
 export interface ArticleWorkflowRow {
   id: string;
   title: string;
+  slug: string;
   excerpt: string;
   category: string;
   featured_image_url: string | null;

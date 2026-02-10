@@ -10,9 +10,14 @@ import { EicOverrides, ArticleWorkflowRow } from "@/types/database";
 import { revalidatePath } from "next/cache";
 
 /**
- * EXTERNAL PUBLICATION
- * Migrates content to Sanity CMS and marks status as 'published'.
+ * HELPER: Extracts the storage path from a Supabase public URL.
+ * Example: https://.../public/media/folder/image.webp -> folder/image.webp
  */
+const getStoragePath = (url: string) => {
+  const parts = url.split("/storage/v1/object/public/media/");
+  return parts.length > 1 ? parts[1] : null;
+};
+
 export async function publishToSanityAction(
   articleId: string,
   eicOverrides: EicOverrides = {},
@@ -35,7 +40,7 @@ export async function publishToSanityAction(
       };
     }
 
-    // 2. Fetch Source Content from Supabase
+    // 2. Fetch Source Content
     const { data: article } = (await supabase
       .from("article_workflow")
       .select(`*, profiles(sanity_author_id)`)
@@ -48,58 +53,80 @@ export async function publishToSanityAction(
         error: createError("NOT_FOUND", "Article not found."),
       };
 
-    // 3. Transform Content (Tiptap JSON -> Sanity Portable Text)
     const rawPortableText = tiptapToPortableText(article.content.content);
     const categoryRef = getSanityCategoryId(article.category);
 
-    // 4. Media Migration: Featured Image
+    // 3. Featured Image Migration (Using SDK instead of fetch)
     let mainImageAssetId: string | null = null;
     if (article.featured_image_url) {
-      const imgRes = await fetch(article.featured_image_url);
-      const blob = await imgRes.blob();
-      const asset = await sanity.assets.upload("image", blob);
-      mainImageAssetId = asset._id;
+      const path = getStoragePath(article.featured_image_url);
+      if (path) {
+        const { data: blob, error: downloadError } = await supabase.storage
+          .from("media")
+          .download(path);
+
+        if (blob && !downloadError) {
+          const asset = await sanity.assets.upload("image", blob);
+          mainImageAssetId = asset._id;
+        } else {
+          console.error("Featured image download error:", downloadError);
+        }
+      }
     }
 
-    // 5. Media Migration: Inline Tiptap Images
-    const finalBody = await Promise.all(
+    // 4. Inline Images Migration (Using SDK to bypass Private IP restriction)
+    const finalBodyResults = await Promise.all(
       rawPortableText.map(async (block) => {
         if (block._type === "inlineImage" && "_tempUrl" in block) {
           try {
-            const inlineRes = await fetch(block._tempUrl as string);
-            const inlineAsset = await sanity.assets.upload(
-              "image",
-              await inlineRes.blob(),
-            );
+            const path = getStoragePath(block._tempUrl as string);
+            if (!path) throw new Error("Invalid storage path");
 
-            // Destructure _tempUrl out, but keep attribution, caption, and alt
+            // Bypassing fetch to avoid SSRF / Private IP blocks
+            const { data: blob, error: downloadError } = await supabase.storage
+              .from("media")
+              .download(path);
+
+            if (downloadError || !blob) {
+              throw new Error(
+                `Supabase download failed: ${downloadError?.message}`,
+              );
+            }
+
+            const inlineAsset = await sanity.assets.upload("image", blob);
             const { _tempUrl, ...cleanBlock } = block;
 
             return {
               ...cleanBlock,
-              asset: { _type: "reference", _ref: inlineAsset._id },
+              asset: {
+                _type: "reference",
+                _ref: inlineAsset._id,
+              },
             };
           } catch (e) {
-            // If upload fails, we MUST remove _tempUrl so Sanity doesn't reject the doc
-            // and add a null asset so your frontend guard works.
-            const { _tempUrl, ...failedBlock } = block;
-            return { ...failedBlock, asset: null };
+            console.error("Skipping broken inline image:", e);
+            return null; // Block removed entirely to keep Sanity clean
           }
         }
         return block;
       }),
     );
-    // 6. Create Sanity Document
+
+    const cleanedBody = finalBodyResults.filter(Boolean);
+
+    // 5. Create Sanity Document
     const sanityDoc = await sanity.create({
       _type: "post",
       title: article.title,
       slug: {
         _type: "slug",
-        current: article.title.toLowerCase().trim().replace(/\s+/g, "-"),
+        current:
+          article.slug ||
+          article.title.toLowerCase().trim().replace(/\s+/g, "-"),
       },
       siteContext: eicOverrides.siteContext || article.site_context || "main",
       excerpt: article.excerpt,
-      body: finalBody,
+      body: cleanedBody,
       publishedAt: new Date().toISOString(),
       isBreaking: eicOverrides.isBreaking ?? article.is_breaking,
       supabaseId: article.id,
@@ -115,15 +142,14 @@ export async function publishToSanityAction(
         ? {
             _type: "image",
             asset: { _type: "reference", _ref: mainImageAssetId },
-            // Use specific metadata from Supabase, falling back to title only if empty
             alt: article.image_alt || article.title,
             caption: article.image_caption,
-            attribution: article.image_source, // Matches Sanity schema 'attribution'
+            attribution: article.image_source,
           }
         : undefined,
     });
 
-    // 7. Final Step: Mark as Published in Supabase
+    // 6. Final Sync to Supabase
     const { error: updateError } = await supabase
       .from("article_workflow")
       .update({
@@ -138,7 +164,7 @@ export async function publishToSanityAction(
         success: false,
         error: createError(
           "DB_FETCH_FAILED",
-          "Article live on Sanity, but Supabase sync failed.",
+          "Live on Sanity, Supabase sync failed.",
         ),
       };
     }

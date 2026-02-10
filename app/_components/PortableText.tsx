@@ -13,7 +13,7 @@ interface InlineImageValue {
   alt?: string;
   caption?: string;
   attribution?: string;
-  asset: {
+  asset?: {
     _ref: string;
     _type: "reference";
   };
@@ -99,10 +99,14 @@ const components: PortableTextComponents = {
 
     // --- INLINE IMAGE ---
     inlineImage: ({ value }: { value: InlineImageValue }) => {
-      // 1. Check if the asset exists
-      if (!value?.asset) {
-        console.error("Inline Image missing asset:", value);
-        return null; // Or return a placeholder div
+      // 1. Strict Guard: Check if the asset and its reference ID exist
+      // This prevents urlFor(value) from throwing an error
+      if (!value?.asset?._ref) {
+        console.error(
+          "Inline Image block skipped: Missing asset reference",
+          value,
+        );
+        return null;
       }
 
       return (
@@ -166,6 +170,8 @@ export default function CustomPortableText({
 }: {
   value: PortableTextProps["value"];
 }) {
+  if (!value) return null;
+
   return (
     <div
       className="prose prose-slate max-w-none 
