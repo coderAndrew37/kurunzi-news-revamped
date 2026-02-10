@@ -3,10 +3,14 @@
 import { Editor } from "@tiptap/react";
 import {
   Bold,
-  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
   Image as ImageIcon,
   Link as LinkIcon,
   Quote,
+  Type,
 } from "lucide-react";
 import { useState } from "react";
 import LinkSearch from "./LinkSearch";
@@ -22,34 +26,40 @@ export default function EditorToolbar({
   onImageClick,
 }: EditorToolbarProps) {
   const [showLinkSearch, setShowLinkSearch] = useState(false);
-
   if (!editor) return null;
 
-  const handleLinkSelect = (url: string, title: string) => {
-    // If text is selected, link it. If not, insert the title as a link.
-    const { from, to } = editor.state.selection;
-
-    if (from === to) {
-      editor
-        .chain()
-        .focus()
-        .insertContent(`<a href="${url}">${title}</a> `)
-        .run();
-    } else {
-      editor
-        .chain()
-        .focus()
-        .extendMarkRange("link")
-        .setLink({ href: url })
-        .run();
-    }
-    setShowLinkSearch(false);
-  };
-
   return (
-    <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-900 text-white rounded-t-xl">
+    <div className="flex flex-wrap items-center gap-1 p-1">
       <ToolbarButton
-        title="Bold (Ctrl+B)"
+        title="Normal Text"
+        onClick={() => editor.chain().focus().setParagraph().run()}
+        active={editor.isActive("paragraph")}
+      >
+        <Type size={18} />
+      </ToolbarButton>
+
+      <div className="w-px h-4 bg-slate-200 mx-1" />
+
+      <ToolbarButton
+        title="Heading 2"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        active={editor.isActive("heading", { level: 2 })}
+      >
+        <Heading2 size={18} />
+      </ToolbarButton>
+
+      <ToolbarButton
+        title="Heading 3"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        active={editor.isActive("heading", { level: 3 })}
+      >
+        <Heading3 size={18} />
+      </ToolbarButton>
+
+      <div className="w-px h-4 bg-slate-200 mx-1" />
+
+      <ToolbarButton
+        title="Bold"
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive("bold")}
       >
@@ -57,11 +67,33 @@ export default function EditorToolbar({
       </ToolbarButton>
 
       <ToolbarButton
-        title="Secondary Heading"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        active={editor.isActive("heading", { level: 2 })}
+        title="Bullet List"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        active={editor.isActive("bulletList")}
       >
-        <Heading1 size={18} />
+        <List size={18} />
+      </ToolbarButton>
+
+      <ToolbarButton
+        title="Numbered List"
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        active={editor.isActive("orderedList")}
+      >
+        <ListOrdered size={18} />
+      </ToolbarButton>
+
+      <ToolbarButton
+        title="Blockquote"
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        active={editor.isActive("blockquote")}
+      >
+        <Quote size={18} />
+      </ToolbarButton>
+
+      <div className="w-px h-4 bg-slate-200 mx-1" />
+
+      <ToolbarButton title="Insert Image" onClick={onImageClick}>
+        <ImageIcon size={18} />
       </ToolbarButton>
 
       <div className="relative">
@@ -72,29 +104,29 @@ export default function EditorToolbar({
         >
           <LinkIcon size={18} />
         </ToolbarButton>
-
         {showLinkSearch && (
           <LinkSearch
-            onSelect={handleLinkSelect}
+            onSelect={(url, title) => {
+              if (editor.state.selection.empty) {
+                editor
+                  .chain()
+                  .focus()
+                  .insertContent(`<a href="${url}">${title}</a> `)
+                  .run();
+              } else {
+                editor
+                  .chain()
+                  .focus()
+                  .extendMarkRange("link")
+                  .setLink({ href: url })
+                  .run();
+              }
+              setShowLinkSearch(false);
+            }}
             onClose={() => setShowLinkSearch(false)}
           />
         )}
       </div>
-
-      <div className="w-[1px] h-6 bg-slate-700 mx-1 self-center" />
-
-      {/* Triggering the professional upload flow instead of prompt */}
-      <ToolbarButton title="Insert Image" onClick={onImageClick}>
-        <ImageIcon size={18} />
-      </ToolbarButton>
-
-      <ToolbarButton
-        title="Blockquote"
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        active={editor.isActive("blockquote")}
-      >
-        <Quote size={18} />
-      </ToolbarButton>
     </div>
   );
 }
@@ -108,10 +140,12 @@ function ToolbarButton({
   return (
     <button
       type="button"
-      title={title} // Native tooltip on hover
+      title={title}
       onClick={onClick}
-      className={`p-2 rounded-md transition-all ${
-        active ? "bg-pd-red text-white" : "hover:bg-slate-700 text-slate-300"
+      className={`p-2 rounded-xl transition-all ${
+        active
+          ? "bg-slate-900 text-white shadow-sm"
+          : "hover:bg-slate-100 text-slate-500 hover:text-slate-900"
       }`}
     >
       {children}
