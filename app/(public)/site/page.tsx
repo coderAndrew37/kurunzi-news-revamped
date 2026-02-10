@@ -1,7 +1,7 @@
 import { fetchHomepageSections } from "@/lib/sanity/api";
 import { mapPostToUi } from "@/lib/sanity/mapper";
-import NewsSection from "./_components/NewsSection";
-import BreakingNewsTicker from "./_components/BreakingNews";
+import BreakingNewsTicker from "../../_components/BreakingNews";
+import NewsSection from "../../_components/NewsSection";
 
 export default async function HomePage() {
   const sections = await fetchHomepageSections();

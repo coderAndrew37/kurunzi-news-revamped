@@ -1,8 +1,8 @@
 import { fetchCategoryLanding } from "@/lib/sanity/api";
 import { mapPostToUi } from "@/lib/sanity/mapper";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import NewsSection from "../_components/NewsSection";
+import { notFound, redirect } from "next/navigation";
+import NewsSection from "../../../_components/NewsSection";
 
 export default async function CategoryPage({
   params,
@@ -11,6 +11,12 @@ export default async function CategoryPage({
 }) {
   const resolvedParams = await params;
   const slug = resolvedParams.category;
+
+  // If the slug is empty or undefined, it means the middleware rewrite
+  // accidentally hit this dynamic route. We force it back to the home route.
+  if (!slug || slug === "site" || slug === "index") {
+    redirect("/");
+  }
 
   const data = await fetchCategoryLanding(slug);
 

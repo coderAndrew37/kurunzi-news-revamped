@@ -1,17 +1,17 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutDashboard,
-  FileText,
-  PlusCircle,
-  User,
-  Newspaper,
-  LogOut,
-} from "lucide-react";
 import { createClient } from "@/lib/utils/supabase/client";
 import type { SidebarLink } from "@/types";
+import {
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Newspaper,
+  PlusCircle,
+  User,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 
 /**
  * Map of allowed icon names → Lucide components
@@ -30,17 +30,27 @@ interface SidebarProps {
   onLogout?: () => Promise<void>;
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
+
 export default function Sidebar({ links, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
 
   const handleLogout = async () => {
-    if (onLogout) {
-      await onLogout();
-    } else {
-      await supabase.auth.signOut();
-      router.push("/login");
+    try {
+      if (onLogout) {
+        await onLogout();
+      } else {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+
+        // Force a hard redirect to the main public site
+        // This ensures we leave the admin. or writer. subdomain entirely
+        window.location.href = `${SITE_URL}/login`;
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
     }
   };
 

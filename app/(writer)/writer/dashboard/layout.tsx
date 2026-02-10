@@ -1,24 +1,30 @@
 import Sidebar from "@/app/_components/dashboard/Sidebar";
+import DashboardHeader from "@/app/_components/dashboard/DashboardHeader";
 import { writerSidebarLinks } from "@/config/sidebar-links";
+import { createClient } from "@/lib/utils/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function WriterLayout({
+export default async function WriterLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar links={writerSidebarLinks} />
-
-      <main className="flex-1 overflow-y-auto">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-8 sticky top-0 z-40">
-          <h1 className="font-bold text-slate-800">Writer Portal</h1>
-          <div className="flex items-center gap-4">
-            {/* Profile circle and notification bell */}
-          </div>
-        </header>
-        <div className="p-8">{children}</div>
-      </main>
+      <div className="flex-1 flex flex-col">
+        <DashboardHeader title="Writer Newsroom" userEmail={user.email} />
+        <main className="p-8 overflow-y-auto">
+          <div className="max-w-7xl mx-auto">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }
