@@ -3,7 +3,6 @@ import { fetchNavCategories } from "@/lib/sanity/api";
 import Navbar from "../_components/Navbar";
 import Footer from "../_components/Footer";
 
-// Move your Metadata here - specifically for the News site
 export const metadata: Metadata = {
   metadataBase: new URL("https://kurunzinews.co.ke"),
   title: {
@@ -27,7 +26,7 @@ export const metadata: Metadata = {
     siteName: "Kurunzi News",
     images: [
       {
-        url: "/og-image.jpg", // Make sure to add this in your public folder
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
       },
@@ -70,9 +69,16 @@ export default async function PublicLayout({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="flex flex-col min-h-screen">
-        <Navbar categories={categories} />
-        <main className="grow">{children}</main>
+      <div className="min-h-screen bg-white">
+        {/* Navbar with sticky positioning */}
+        <div className="sticky top-0 z-50">
+          <Navbar categories={categories} />
+        </div>
+
+        {/* Main content */}
+        <main className="min-h-screen bg-gray-50">{children}</main>
+
+        {/* Footer */}
         <Footer />
       </div>
     </>

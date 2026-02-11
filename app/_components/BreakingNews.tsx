@@ -7,37 +7,45 @@ export default async function BreakingNewsTicker() {
   if (!articles.length) return null;
 
   return (
-    <div className="bg-black text-white h-10 flex items-center overflow-hidden border-y border-white/10">
-      {/* Label */}
-      <div className="bg-pd-ticker px-4 h-full flex items-center z-10 relative shadow-[10px_0_15px_rgba(0,0,0,0.5)]">
-        <span className="text-[10px] font-black uppercase tracking-tighter whitespace-nowrap animate-pulse">
-          Breaking News
-        </span>
-      </div>
+    <div className="relative bg-gray-900 text-white overflow-hidden border-b border-red-600">
+      {/* Gradient overlays for smooth edges */}
+      <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-gray-900 to-transparent z-10" />
+      <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-900 to-transparent z-10" />
 
-      {/* Ticker */}
-      <div className="flex whitespace-nowrap items-center hover:[animation-play-state:paused]">
-        {[0, 1].map((loop) => (
-          <div
-            key={loop}
-            className="flex animate-ticker gap-10 pl-10"
-            aria-hidden={loop === 1 ? "true" : undefined}
-          >
-            {articles.map((article) => (
-              <ArticleLink
-                key={`${loop}-${article.slug}`}
-                categorySlug={article.category}
-                slug={article.slug}
-                className="flex items-center gap-2 group"
-              >
-                <span className="text-pd-ticker font-black text-lg">•</span>
-                <span className="text-xs font-bold uppercase tracking-tight group-hover:text-pd-ticker transition-colors">
-                  {article.title}
-                </span>
-              </ArticleLink>
-            ))}
+      <div className="relative flex items-center h-9">
+        {/* Breaking News Label */}
+        <div className="flex-shrink-0 bg-red-600 h-full flex items-center px-4 z-20">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            <span className="text-xs font-black uppercase tracking-wider">
+              BREAKING
+            </span>
           </div>
-        ))}
+        </div>
+
+        {/* Ticker Content */}
+        <div className="flex-1 overflow-hidden py-1">
+          <div className="flex whitespace-nowrap items-center">
+            <div className="flex animate-ticker gap-8 pl-8 hover:[animation-play-state:paused]">
+              {articles.map((article, index) => (
+                <div key={article.slug} className="flex items-center">
+                  <ArticleLink
+                    categorySlug={article.category}
+                    slug={article.slug}
+                    className="flex items-center gap-3 group"
+                  >
+                    <span className="text-xs font-semibold text-gray-300 group-hover:text-white transition-colors">
+                      {article.title}
+                    </span>
+                    {index < articles.length - 1 && (
+                      <span className="text-red-400 text-lg">•</span>
+                    )}
+                  </ArticleLink>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

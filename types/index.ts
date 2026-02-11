@@ -25,6 +25,12 @@ export interface Post {
   excerpt?: string;
   category?: string; // category slug
   authorName?: string;
+  authorSlug?: string;
+  authorImage?: {
+    asset: { _ref: string };
+  };
+  tags?: { title: string; slug: string }[];
+  date: string;
 }
 
 // For the full article page
@@ -41,6 +47,7 @@ export interface ArticleDetail {
   categoryTitle: string;
   categorySlug: string;
   authorName: string;
+  authorBio?: string;
   authorSlug: string;
   authorImage: {
     asset: { _ref: string };
@@ -55,6 +62,11 @@ export interface NewsCardProps {
   category: string;
   date: string;
   excerpt?: string;
+  imageCaption?: string;
+  imageSource?: string;
+  imageAlt?: string;
+  isBreaking?: boolean;
+  author?: string;
 }
 
 export interface HomepageSection {

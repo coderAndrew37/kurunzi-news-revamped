@@ -1,8 +1,14 @@
-import { QueryParams } from "next-sanity";
-import { sanityServerClient as client } from "./client";
 import { HomepageSection, Post } from "@/types";
+import { sanityServerClient as client } from "./client";
 
 export const POSTS_PER_PAGE = 12;
+
+function debugLog(label: string, payload?: unknown) {
+  console.log(`\n[Sanity API] ${label}`);
+  if (payload !== undefined) {
+    console.dir(payload, { depth: null });
+  }
+}
 
 export const QUERIES = {
   postFields: `
@@ -173,14 +179,24 @@ export const QUERIES = {
     _id, title, "slug": slug.current, mainImage, publishedAt, excerpt, "categorySlug": category->slug.current
   }`,
 
-  getAuthorProfile: `*[_type == "author" && slug.current == $slug][0] {
-    name,
-    bio,
-    image,
-    "posts": *[_type == "post" && author._ref == ^._id] | order(publishedAt desc) {
-      _id, title, "slug": slug.current, mainImage, publishedAt, excerpt, "categorySlug": category->slug.current
+  getAuthorProfile: `
+    *[_type == "author" && slug.current == $slug][0] {
+      _id,
+      name,
+      bio,
+      image,
+      "slug": slug.current,
+      "posts": *[_type == "post" && author._ref == ^._id] | order(publishedAt desc) {
+        _id,
+        title,
+        "slug": slug.current,
+        mainImage,
+        publishedAt,
+        excerpt,
+        "categorySlug": category->slug.current
+      }
     }
-  }`,
+  `,
 };
 
 // --- Execution Functions ---
@@ -283,7 +299,37 @@ export async function fetchPostsByTag(
 }
 
 export async function fetchAuthorProfile(slug: string) {
-  return await client.fetch(QUERIES.getAuthorProfile, { slug });
+  debugLog("fetchAuthorProfile → slug received", slug);
+
+  if (!slug) {
+    debugLog("fetchAuthorProfile → ERROR: slug is empty");
+    return null;
+  }
+
+  try {
+    const result = await client.fetch(
+      QUERIES.getAuthorProfile,
+      { slug },
+      { next: { revalidate: 60 } },
+    );
+
+    debugLog("fetchAuthorProfile → raw result", result);
+
+    if (!result) {
+      debugLog("fetchAuthorProfile → WARNING: No author found for slug", slug);
+    } else {
+      debugLog("fetchAuthorProfile → SUCCESS: Author found", {
+        id: result._id,
+        name: result.name,
+        postsCount: result.posts?.length ?? 0,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    debugLog("fetchAuthorProfile → ERROR", error);
+    throw error;
+  }
 }
 
 export async function fetchEditorMetadata() {
@@ -291,4 +337,16 @@ export async function fetchEditorMetadata() {
     categories: { _id: string; title: string; slug: string }[];
     siteContexts: { title: string; value: string }[];
   }>(QUERIES.getEditorMetadata);
+}
+
+export async function fetchHeroPost() {
+  return await client.fetch(
+    `*[_type == "post" && isHero == true && !(_id in path("drafts.**"))] | order(publishedAt desc)[0] {
+      ...,
+      "slug": slug.current,
+      "category": category->slug.current
+    }`,
+    {},
+    { next: { revalidate: 60 } },
+  );
 }

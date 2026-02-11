@@ -12,4 +12,5 @@ export const sanityServerClient = createClient({
   apiVersion,
   useCdn: false, // CDN not allowed for private datasets
   token, // REQUIRED
+  perspective: "published",
 });
