@@ -87,18 +87,30 @@ export const QUERIES = {
   }`,
 
   getHomepageSections: `
-    *[_type == "category" && count(*[_type == "post" && references(^._id)]) > 0] | order(order asc) {
+    *[_type == "category" && count(*[_type == "post" && references(^._id) && !(_id in path("drafts.**"))]) > 0] | order(order asc) {
       title,
       "slug": slug.current,
-      "posts": *[_type == "post" && references(^._id)] | order(publishedAt desc) [0...8] {
+      "posts": *[_type == "post" && references(^._id) && _id != $excludeId && !(_id in path("drafts.**"))] | order(publishedAt desc) [0...8] {
          _id, 
          title, 
          "slug": slug.current, 
           mainImage,
          publishedAt, 
          excerpt, 
-         "category": category->slug.current // CRITICAL: This was missing
+         "category": category->slug.current 
       }
+    }
+  `,
+
+  getHeroPost: `
+    *[_type == "post" && isHero == true && !(_id in path("drafts.**"))] | order(publishedAt desc)[0] {
+      _id,
+      title,
+      "slug": slug.current,
+      mainImage,
+      publishedAt,
+      excerpt,
+      "category": category->slug.current
     }
   `,
 
@@ -245,10 +257,21 @@ export async function fetchNavCategories() {
   );
 }
 
-export async function fetchHomepageSections(): Promise<HomepageSection[]> {
+export async function fetchHeroPost() {
+  return await client.fetch(
+    QUERIES.getHeroPost,
+    {},
+    { next: { revalidate: 60 } },
+  );
+}
+
+// Accept excludeId as a parameter (defaults to empty string)
+export async function fetchHomepageSections(
+  excludeId: string = "",
+): Promise<HomepageSection[]> {
   return await client.fetch<HomepageSection[]>(
     QUERIES.getHomepageSections,
-    {},
+    { excludeId },
     { next: { revalidate: 60 } },
   );
 }
@@ -299,10 +322,7 @@ export async function fetchPostsByTag(
 }
 
 export async function fetchAuthorProfile(slug: string) {
-  debugLog("fetchAuthorProfile → slug received", slug);
-
   if (!slug) {
-    debugLog("fetchAuthorProfile → ERROR: slug is empty");
     return null;
   }
 
@@ -313,10 +333,7 @@ export async function fetchAuthorProfile(slug: string) {
       { next: { revalidate: 60 } },
     );
 
-    debugLog("fetchAuthorProfile → raw result", result);
-
     if (!result) {
-      debugLog("fetchAuthorProfile → WARNING: No author found for slug", slug);
     } else {
       debugLog("fetchAuthorProfile → SUCCESS: Author found", {
         id: result._id,
@@ -327,7 +344,6 @@ export async function fetchAuthorProfile(slug: string) {
 
     return result;
   } catch (error) {
-    debugLog("fetchAuthorProfile → ERROR", error);
     throw error;
   }
 }
@@ -337,16 +353,4 @@ export async function fetchEditorMetadata() {
     categories: { _id: string; title: string; slug: string }[];
     siteContexts: { title: string; value: string }[];
   }>(QUERIES.getEditorMetadata);
-}
-
-export async function fetchHeroPost() {
-  return await client.fetch(
-    `*[_type == "post" && isHero == true && !(_id in path("drafts.**"))] | order(publishedAt desc)[0] {
-      ...,
-      "slug": slug.current,
-      "category": category->slug.current
-    }`,
-    {},
-    { next: { revalidate: 60 } },
-  );
 }
