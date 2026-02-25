@@ -7,24 +7,19 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
-// 1. Interfaces for Sanity objects
+// ── Type declarations ─────────────────────────────────────────────────────────
 interface InlineImageValue {
   _type: "inlineImage";
   alt?: string;
   caption?: string;
   attribution?: string;
-  asset?: {
-    _ref: string;
-    _type: "reference";
-  };
+  asset?: { _ref: string; _type: "reference" };
 }
-
 interface YouTubeValue {
   _type: "youtube";
   url: string;
   videoCaption?: string;
 }
-
 interface InlineRelatedValue {
   _type: "inlineRelated";
   post: {
@@ -35,98 +30,110 @@ interface InlineRelatedValue {
   };
 }
 
-// 2. Component Definitions
+// ── Portable Text component map ───────────────────────────────────────────────
 const components: PortableTextComponents = {
   block: {
-    h2: ({ children }) => (
-      <h2 className="text-3xl font-bold mt-10 mb-4 text-slate-900 leading-tight">
-        {children}
-      </h2>
-    ),
-    h3: ({ children }) => (
-      <h3 className="text-2xl font-bold mt-8 mb-3 text-slate-800">
-        {children}
-      </h3>
-    ),
-    normal: ({ children }) => (
-      <p className="text-lg leading-relaxed text-slate-700 mb-6 font-serif">
-        {children}
-      </p>
-    ),
+    // Section headline — red left-border accent
+    h2: ({ children }) => <h2 className="pt-h2">{children}</h2>,
+    // Sub-section
+    h3: ({ children }) => <h3 className="pt-h3">{children}</h3>,
+    // Label kicker
+    h4: ({ children }) => <h4 className="pt-h4">{children}</h4>,
+    // Body paragraph — Source Serif, comfortable leading
+    normal: ({ children }) => <p className="pt-p">{children}</p>,
+    // Pull quote — newspaper-style between double rules
     blockquote: ({ children }) => (
-      <blockquote className="border-l-4 border-pd-red pl-6 py-2 my-8 italic text-xl text-slate-800 bg-slate-50">
-        {children}
-      </blockquote>
+      <blockquote className="pt-blockquote">{children}</blockquote>
     ),
   },
+
+  list: {
+    bullet: ({ children }) => <ul className="pt-ul">{children}</ul>,
+    number: ({ children }) => <ol className="pt-ol">{children}</ol>,
+  },
+
+  listItem: {
+    bullet: ({ children }) => (
+      <li className="pt-li pt-li-bullet">{children}</li>
+    ),
+    number: ({ children }) => (
+      <li className="pt-li pt-li-number">{children}</li>
+    ),
+  },
+
+  marks: {
+    strong: ({ children }) => <strong className="pt-strong">{children}</strong>,
+    em: ({ children }) => <em className="pt-em">{children}</em>,
+    code: ({ children }) => <code className="pt-code">{children}</code>,
+    underline: ({ children }) => (
+      <u className="underline underline-offset-2">{children}</u>
+    ),
+    link: ({ value, children }) => (
+      <a
+        href={value?.href}
+        target={value?.href?.startsWith("http") ? "_blank" : undefined}
+        rel={
+          value?.href?.startsWith("http") ? "noopener noreferrer" : undefined
+        }
+        className="pt-link"
+      >
+        {children}
+      </a>
+    ),
+  },
+
   types: {
-    // --- INLINE RELATED ARTICLE (Two Column: Text Left, Image Right) ---
+    // ── Read Also card ──────────────────────────────────────────────────────
     inlineRelated: ({ value }: { value: InlineRelatedValue }) => {
       if (!value?.post?.slug) return null;
-
       return (
         <Link
           href={`/${value.post.categorySlug}/${value.post.slug}`}
-          className="group my-10 block overflow-hidden border-y border-slate-200 py-6 transition-all hover:border-pd-red"
+          className="pt-related"
         >
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex-1">
-              <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-pd-red">
-                Read Also
-              </span>
-              <h4 className="text-xl md:text-2xl font-bold leading-tight text-slate-900 group-hover:text-pd-red transition-colors italic">
-                {value.post.title}
-              </h4>
-            </div>
-
-            {value.post.mainImage && (
-              <div className="relative h-20 w-20 md:h-24 md:w-32 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100 shadow-sm">
-                <Image
-                  src={urlFor(value.post.mainImage)
-                    .width(300)
-                    .height(200)
-                    .url()}
-                  alt={value.post.title}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              </div>
-            )}
+          <div className="flex-1 min-w-0">
+            <span className="pt-related-kicker">Read Also</span>
+            <h4 className="pt-related-headline">{value.post.title}</h4>
           </div>
+          {value.post.mainImage && (
+            <div className="relative flex-shrink-0 overflow-hidden rounded pt-related-thumb">
+              <Image
+                src={urlFor(value.post.mainImage).width(300).height(200).url()}
+                alt={value.post.title}
+                fill
+                className="object-cover pt-related-img"
+              />
+            </div>
+          )}
         </Link>
       );
     },
 
-    // --- INLINE IMAGE ---
+    // ── Inline image with caption ───────────────────────────────────────────
     inlineImage: ({ value }: { value: InlineImageValue }) => {
-      // 1. Strict Guard: Check if the asset and its reference ID exist
-      // This prevents urlFor(value) from throwing an error
       if (!value?.asset?._ref) {
-        console.error(
-          "Inline Image block skipped: Missing asset reference",
-          value,
-        );
+        console.warn("[PortableText] inlineImage missing asset._ref", value);
         return null;
       }
-
       return (
-        <figure className="my-10 space-y-2">
-          <div className="relative aspect-video w-full overflow-hidden rounded-xl shadow-md bg-slate-100">
+        <figure className="pt-figure">
+          <div
+            className="relative w-full overflow-hidden rounded pt-figure-ratio"
+            style={{ background: "var(--paper-warm)" }}
+          >
             <Image
               src={urlFor(value).url()}
-              alt={value.alt || "Article Image"}
+              alt={value.alt ?? ""}
               fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 50vw"
+              sizes="(max-width: 768px) 100vw, 680px"
               className="object-cover"
             />
           </div>
           {(value.caption || value.attribution) && (
-            <figcaption className="text-sm text-slate-500 italic px-2 border-l-2 border-pd-red ml-1">
+            <figcaption className="pt-figcaption">
               {value.caption}
               {value.attribution && (
-                <span className="font-bold uppercase text-[10px] ml-2 tracking-tighter not-italic text-slate-400">
-                  — {value.attribution}
-                </span>
+                <cite className="pt-credit"> — {value.attribution}</cite>
               )}
             </figcaption>
           )}
@@ -134,30 +141,28 @@ const components: PortableTextComponents = {
       );
     },
 
-    // --- YOUTUBE ---
+    // ── YouTube embed ───────────────────────────────────────────────────────
     youtube: ({ value }: { value: YouTubeValue }) => {
-      const videoId = value.url?.match(
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/,
+      const id = value.url?.match(
+        /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?/\s]{11})/,
       )?.[1];
-      if (!videoId) return null;
-
+      if (!id) return null;
       return (
-        <div className="my-10 space-y-3">
-          <div className="aspect-video rounded-xl overflow-hidden shadow-2xl bg-black">
+        <div className="pt-video">
+          <div
+            className="relative w-full overflow-hidden rounded-lg pt-video-ratio"
+            style={{ background: "#000" }}
+          >
             <iframe
-              width="100%"
-              height="100%"
-              src={`https://www.youtube.com/embed/${videoId}`}
-              title="Video Content"
+              src={`https://www.youtube.com/embed/${id}`}
+              title="Video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className="border-0"
+              className="absolute inset-0 w-full h-full border-0"
             />
           </div>
           {value.videoCaption && (
-            <p className="text-center text-sm text-slate-500 italic font-medium">
-              {value.videoCaption}
-            </p>
+            <p className="pt-video-caption">{value.videoCaption}</p>
           )}
         </div>
       );
@@ -165,6 +170,7 @@ const components: PortableTextComponents = {
   },
 };
 
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function CustomPortableText({
   value,
 }: {
@@ -173,32 +179,300 @@ export default function CustomPortableText({
   if (!value) return null;
 
   return (
-    <div
-      className="prose prose-lg max-w-none
-      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6 prose-p:text-lg
-      prose-h2:text-2xl prose-h2:font-bold prose-h2:text-gray-900 prose-h2:mt-12 prose-h2:mb-4 prose-h2:border-b prose-h2:pb-2
-      prose-h3:text-xl prose-h3:font-bold prose-h3:text-gray-900 prose-h3:mt-8 prose-h3:mb-3
-      prose-h4:text-lg prose-h4:font-semibold prose-h4:text-gray-900 prose-h4:mt-6 prose-h4:mb-2
-      prose-ul:my-6 prose-ul:pl-6
-      prose-li:text-gray-700 prose-li:leading-relaxed prose-li:my-2
-      prose-ol:my-6 prose-ol:pl-6
-      prose-blockquote:border-l-4 prose-blockquote:border-red-300 prose-blockquote:pl-6 prose-blockquote:py-2 prose-blockquote:my-8 prose-blockquote:bg-red-50 prose-blockquote:rounded-r-lg
-      prose-blockquote:p:text-gray-600 prose-blockquote:p:font-serif
-      prose-a:text-red-600 prose-a:no-underline hover:prose-a:text-red-700 hover:prose-a:underline
-      prose-img:rounded-xl prose-img:my-8 prose-img:w-full prose-img:h-auto prose-img:shadow-md
-      prose-figure:my-8
-      prose-figcaption:text-gray-500 prose-figcaption:text-sm prose-figcaption:text-center prose-figcaption:mt-2
-      prose-strong:text-gray-900 prose-strong:font-semibold
-      prose-em:text-gray-600 prose-em:italic
-      prose-table:w-full prose-table:my-8 prose-table:border-collapse
-      prose-th:bg-gray-100 prose-th:text-gray-900 prose-th:font-semibold prose-th:p-4 prose-th:border prose-th:border-gray-300
-      prose-td:p-4 prose-td:border prose-td:border-gray-300 prose-td:text-gray-700
-      prose-hr:my-8 prose-hr:border-gray-300
-      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-6 prose-pre:rounded-xl prose-pre:my-8 prose-pre:overflow-x-auto
-      prose-code:text-gray-900 prose-code:bg-gray-100 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm
-      prose-pre:code:text-gray-100 prose-pre:code:bg-transparent"
-    >
-      <PortableText value={value} />
-    </div>
+    <>
+      <div className="pt-root">
+        <PortableText value={value} components={components} />
+      </div>
+
+      {/* ── Scoped styles ──────────────────────────────────────────────────
+          Tailwind cannot express:
+          • CSS custom properties / var()
+          • ::first-letter drop-cap (float + multi-property)
+          • counter-reset / counter-increment on li::before
+          • :first-of-type paragraph targeting
+          • parent-selector hover chains
+      ─────────────────────────────────────────────────────────────────── */}
+      <style>{`
+        /* ── Tokens (inherit from page if already set) ── */
+        .pt-root {
+          --ink:        #0d0d0d;
+          --ink-soft:   #3d3935;
+          --ink-muted:  #7a736c;
+          --ink-faint:  #b5aea7;
+          --paper-warm: #f7f4f0;
+          --rule:       #e8e2da;
+          --red:        #c8191e;
+          --font-display: 'Playfair Display', Georgia, serif;
+          --font-body:    'Source Serif 4', Georgia, serif;
+          --font-ui:      'Barlow Condensed', system-ui, sans-serif;
+          max-width: 100%;
+        }
+
+        /* ── Body paragraphs ── */
+        .pt-p {
+          font-family: var(--font-body);
+          font-size: 1.125rem;
+          line-height: 1.85;
+          color: var(--ink-soft);
+          margin: 0 0 1.5em;
+          font-weight: 400;
+        }
+
+        /* Drop-cap on the very first paragraph */
+        .pt-root > .pt-p:first-of-type::first-letter {
+          font-family: var(--font-display);
+          font-size: 4em;
+          font-weight: 900;
+          line-height: .78;
+          float: left;
+          margin: .04em .1em -.04em 0;
+          color: var(--ink);
+        }
+
+        /* ── Headings ── */
+        .pt-h2 {
+          font-family: var(--font-display);
+          font-size: clamp(1.4rem, 3vw, 1.75rem);
+          font-weight: 900;
+          line-height: 1.18;
+          letter-spacing: -.02em;
+          color: var(--ink);
+          margin: 2.5em 0 .6em;
+          padding-left: 14px;
+          border-left: 3px solid var(--red);
+        }
+        .pt-h3 {
+          font-family: var(--font-display);
+          font-size: clamp(1.2rem, 2.5vw, 1.4rem);
+          font-weight: 700;
+          line-height: 1.22;
+          color: var(--ink);
+          margin: 2em 0 .5em;
+        }
+        .pt-h4 {
+          font-family: var(--font-ui);
+          font-size: .8rem;
+          font-weight: 700;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+          color: var(--ink-muted);
+          margin: 1.8em 0 .4em;
+        }
+
+        /* ── Blockquote — newspaper pull-quote between rules ── */
+        .pt-blockquote {
+          position: relative;
+          margin: 2.8em 0;
+          padding: 1.4em 1.8em 1.4em 1.8em;
+          border-top: 2px solid var(--ink);
+          border-bottom: 2px solid var(--ink);
+          background: transparent;
+        }
+        .pt-blockquote::before {
+          content: '"';
+          position: absolute;
+          top: -28px;
+          left: 0;
+          font-family: var(--font-display);
+          font-size: 6.5rem;
+          color: var(--red);
+          line-height: 1;
+          font-weight: 900;
+          opacity: .9;
+        }
+        /* Override any nested p inside blockquote */
+        .pt-blockquote .pt-p,
+        .pt-blockquote p {
+          font-family: var(--font-display);
+          font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+          font-style: italic;
+          font-weight: 700;
+          line-height: 1.45;
+          color: var(--ink);
+          margin: 0;
+        }
+        /* Kill drop-cap inside blockquote */
+        .pt-blockquote .pt-p::first-letter,
+        .pt-blockquote p::first-letter {
+          font-size: inherit !important;
+          float: none !important;
+          margin: 0 !important;
+          font-weight: inherit !important;
+          color: inherit !important;
+        }
+
+        /* ── Lists ── */
+        .pt-ul,
+        .pt-ol {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 1.5em;
+        }
+        .pt-li {
+          font-family: var(--font-body);
+          font-size: 1.05rem;
+          line-height: 1.75;
+          color: var(--ink-soft);
+          padding: .4em 0 .4em 1.75em;
+          position: relative;
+          border-bottom: 1px solid var(--rule);
+        }
+        .pt-li:last-child { border-bottom: none; }
+
+        /* Bullet marker — red dot */
+        .pt-li-bullet::before {
+          content: '';
+          position: absolute;
+          left: 2px;
+          top: .85em;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--red);
+        }
+
+        /* Numbered marker */
+        .pt-ol { counter-reset: pt-ol-counter; }
+        .pt-li-number { counter-increment: pt-ol-counter; }
+        .pt-li-number::before {
+          content: counter(pt-ol-counter);
+          position: absolute;
+          left: 0;
+          top: .4em;
+          font-family: var(--font-ui);
+          font-size: .75rem;
+          font-weight: 700;
+          color: var(--red);
+          line-height: 1.75;
+        }
+
+        /* ── Inline marks ── */
+        .pt-strong { font-weight: 700; color: var(--ink); }
+        .pt-em     { font-style: italic; color: var(--ink-soft); }
+        .pt-code {
+          font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+          font-size: .85em;
+          background: var(--paper-warm);
+          border: 1px solid var(--rule);
+          padding: .12em .38em;
+          border-radius: 3px;
+          color: var(--red);
+        }
+        .pt-link {
+          color: var(--ink);
+          text-decoration: underline;
+          text-underline-offset: 3px;
+          text-decoration-thickness: 1px;
+          text-decoration-color: var(--red);
+          font-weight: 500;
+          transition: color .12s;
+        }
+        .pt-link:hover { color: var(--red); }
+
+        /* ── Read Also card ── */
+        .pt-related {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          margin: 2.5em 0;
+          padding: 20px 0;
+          border-top: 1px solid var(--rule);
+          border-bottom: 1px solid var(--rule);
+          text-decoration: none;
+          transition: border-color .15s;
+        }
+        .pt-related:hover { border-color: var(--red); }
+        .pt-related-kicker {
+          display: block;
+          font-family: var(--font-ui);
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: .2em;
+          text-transform: uppercase;
+          color: var(--red);
+          margin-bottom: 6px;
+        }
+        .pt-related-headline {
+          font-family: var(--font-display);
+          font-size: clamp(1rem, 2vw, 1.15rem);
+          font-weight: 700;
+          font-style: italic;
+          line-height: 1.3;
+          color: var(--ink);
+          margin: 0;
+          transition: color .12s;
+        }
+        .pt-related:hover .pt-related-headline { color: var(--red); }
+        .pt-related-thumb {
+          width: 90px;
+          height: 68px;
+          background: var(--paper-warm);
+        }
+        .pt-related-img { transition: transform .3s; }
+        .pt-related:hover .pt-related-img { transform: scale(1.06); }
+
+        /* ── Inline figure ── */
+        .pt-figure { margin: 2.5em 0; }
+        .pt-figure-ratio {
+          aspect-ratio: 16/9;
+        }
+        .pt-figcaption {
+          margin-top: 10px;
+          font-family: var(--font-ui);
+          font-size: 11px;
+          color: var(--ink-muted);
+          letter-spacing: .03em;
+          padding-left: 10px;
+          border-left: 2px solid var(--red);
+        }
+        .pt-credit {
+          font-style: normal;
+          font-weight: 700;
+          color: var(--ink-faint);
+        }
+
+        /* ── YouTube ── */
+        .pt-video { margin: 2.5em 0; }
+        .pt-video-ratio {
+          aspect-ratio: 16/9;
+          box-shadow: 0 8px 32px rgba(0,0,0,.15);
+        }
+        .pt-video-caption {
+          margin-top: 10px;
+          font-family: var(--font-ui);
+          font-size: 11px;
+          color: var(--ink-muted);
+          text-align: center;
+          font-style: italic;
+          letter-spacing: .03em;
+        }
+
+        /* ── HR inside body ── */
+        .pt-root hr {
+          border: none;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--rule), transparent);
+          margin: 3em auto;
+          width: 50%;
+        }
+
+        /* ── Pre / code blocks ── */
+        .pt-root pre {
+          background: var(--ink);
+          border-radius: 8px;
+          padding: 1.5em;
+          overflow-x: auto;
+          margin: 2em 0;
+        }
+        .pt-root pre code {
+          background: none;
+          border: none;
+          color: #d6d3d1;
+          font-size: .85rem;
+          padding: 0;
+        }
+      `}</style>
+    </>
   );
 }

@@ -31,6 +31,7 @@ export interface Post {
   };
   tags?: { title: string; slug: string }[];
   date: string;
+  isBreaking?: boolean;
 }
 
 // For the full article page
@@ -53,6 +54,7 @@ export interface ArticleDetail {
     asset: { _ref: string };
   };
   tags?: { title: string; slug: string }[];
+  isBreaking?: boolean;
 }
 
 export interface NewsCardProps {
