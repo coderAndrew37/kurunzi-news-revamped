@@ -3,7 +3,8 @@
  * Handles fetching and type-casting for Kurunzi Sports Subdomain.
  */
 
-// 1. Define the Shape of our Data
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 export interface WordPressFeaturedImage {
   node: {
     sourceUrl: string;
@@ -26,17 +27,14 @@ export interface SportsPost {
   category: string;
 }
 
-// 2. The Core Fetcher
-async function fetchAPI(query: string, variables: any = {}) {
+// ─── Core Fetcher ─────────────────────────────────────────────────────────────
+
+async function fetchAPI(query: string, variables: Record<string, any> = {}) {
   const res = await fetch(process.env.WORDPRESS_API_URL!, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query,
-      variables,
-    }),
+    headers: { "Content-Type": "application/json" },
+    // Pass variables at the top level of the request body — NOT nested
+    body: JSON.stringify({ query, variables }),
   });
 
   const json = await res.json();
@@ -49,7 +47,8 @@ async function fetchAPI(query: string, variables: any = {}) {
   return json.data;
 }
 
-// 3. Fetching List of Posts (This one was already correct)
+// ─── Queries ──────────────────────────────────────────────────────────────────
+
 export async function getSportsPosts(): Promise<SportsPost[]> {
   const data = await fetchAPI(`
     query GetSportsData {
@@ -58,15 +57,11 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
           title
           slug
           categories {
-            nodes {
-              name
-            }
+            nodes { name }
           }
           date
           featuredImage {
-            node {
-              sourceUrl
-            }
+            node { sourceUrl }
           }
           newsData {
             isHero
@@ -77,6 +72,7 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
       }
     }
   `);
+  // No variables — omit the argument entirely (defaults to {})
 
   const nodes = data?.posts?.nodes || [];
 
@@ -97,7 +93,6 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
   );
 }
 
-// 4. Fetching Single Article (FIXED naming here)
 export async function getArticleBySlug(slug: string) {
   const data = await fetchAPI(
     `
@@ -108,16 +103,11 @@ export async function getArticleBySlug(slug: string) {
         date
         excerpt
         slug
-        categories { 
-          nodes { 
-            name 
-            slug 
-          } 
+        categories {
+          nodes { name slug }
         }
-        featuredImage { 
-          node { 
-            sourceUrl 
-          } 
+        featuredImage {
+          node { sourceUrl altText }
         }
         newsData {
           isHero
@@ -127,8 +117,56 @@ export async function getArticleBySlug(slug: string) {
       }
     }
   `,
-    { slug }, // Variables passed directly here
+    { slug }, // ✅ variables: { slug: "some-post-slug" }
   );
 
   return data?.post;
+}
+
+export async function getCategoryArchive(
+  categorySlug: string,
+  first: number = 10,
+  after: string | null = null,
+) {
+  const data = await fetchAPI(
+    `
+    query GetCategoryArchive($category: String!, $first: Int!, $after: String) {
+      posts(where: { categoryName: $category }, first: $first, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          title
+          slug
+          date
+          excerpt
+          categories { 
+            nodes { 
+              name 
+            } 
+          }
+          featuredImage { 
+            node { 
+              sourceUrl 
+            } 
+          }
+          newsData { 
+            theLede 
+          }
+        }
+      }
+    }
+  `,
+    {
+      category: categorySlug,
+      first: first,
+      after: after,
+    },
+  );
+
+  return {
+    posts: data?.posts?.nodes || [],
+    pageInfo: data?.posts?.pageInfo || { hasNextPage: false, endCursor: null },
+  };
 }
