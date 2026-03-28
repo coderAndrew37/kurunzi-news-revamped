@@ -23,7 +23,7 @@ export interface SportsPost {
   date: string;
   featuredImage: WordPressFeaturedImage | null;
   newsData: NewsMetadata;
-  category: string; // category field for section grouping
+  category: string;
 }
 
 // 2. The Core Fetcher
@@ -49,7 +49,7 @@ async function fetchAPI(query: string, variables: any = {}) {
   return json.data;
 }
 
-// 3. The Main Data Hook
+// 3. Fetching List of Posts (This one was already correct)
 export async function getSportsPosts(): Promise<SportsPost[]> {
   const data = await fetchAPI(`
     query GetSportsData {
@@ -58,10 +58,10 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
           title
           slug
           categories {
-          nodes {
-            name
+            nodes {
+              name
+            }
           }
-        }
           date
           featuredImage {
             node {
@@ -80,7 +80,6 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
 
   const nodes = data?.posts?.nodes || [];
 
-  // 4. Data Cleaning & Default Fallbacks
   return nodes.map(
     (post: any): SportsPost => ({
       title: post.title,
@@ -96,4 +95,40 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
       },
     }),
   );
+}
+
+// 4. Fetching Single Article (FIXED naming here)
+export async function getArticleBySlug(slug: string) {
+  const data = await fetchAPI(
+    `
+    query GetArticleBySlug($slug: ID!) {
+      post(id: $slug, idType: SLUG) {
+        title
+        content
+        date
+        excerpt
+        slug
+        categories { 
+          nodes { 
+            name 
+            slug 
+          } 
+        }
+        featuredImage { 
+          node { 
+            sourceUrl 
+          } 
+        }
+        newsData {
+          isHero
+          isBreaking
+          theLede
+        }
+      }
+    }
+  `,
+    { slug }, // Variables passed directly here
+  );
+
+  return data?.post;
 }
