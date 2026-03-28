@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
         hostname: "ypnloyeywhgpnrjbllni.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "http",
+        hostname: "kurunzi-sports-backend.local",
+        port: "",
+        pathname: "/wp-content/uploads/**",
+      },
     ],
     // High-performance news sites use specific device sizes
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],

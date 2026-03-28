@@ -14,7 +14,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  url.pathname = `/site${pathname === "/" ? "" : pathname}`;
+  url.pathname = `/wordpress${pathname === "/" ? "" : pathname}`;
   const response = NextResponse.rewrite(url);
   response.headers.set("x-proxy-done", "1");
   return response;
