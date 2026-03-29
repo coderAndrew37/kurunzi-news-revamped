@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { getNavCategories } from "@/lib/wordpress/wp-api";
 
-export default function Footer() {
+export default async function Footer() {
   const currentYear = new Date().getFullYear();
+
+  // Fetch categories dynamically from WordPress
+  const categories = await getNavCategories();
 
   return (
     <footer className="bg-[#0a0a0a] text-white pt-20 pb-10 border-t-4 border-[#1a5c38]">
@@ -17,7 +21,6 @@ export default function Footer() {
             the track.
           </p>
           <div className="flex gap-4">
-            {/* Social icons could go here */}
             <div className="w-8 h-8 rounded-full bg-[#1a5c38] flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer">
               <span className="text-[10px] font-bold">FB</span>
             </div>
@@ -27,41 +30,43 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Column 2: Quick Sections */}
+        {/* Column 2: Dynamic Sections */}
         <div>
           <h4 className="font-bold border-l-4 border-red-600 pl-3 mb-6 uppercase tracking-widest text-xs">
             Sections
           </h4>
           <ul className="grid grid-cols-1 gap-4 text-xs font-bold uppercase tracking-wider text-gray-400">
-            <li>
-              <Link
-                href="/football"
-                className="hover:text-[#1a5c38] transition"
-              >
-                Football
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/athletics"
-                className="hover:text-[#1a5c38] transition"
-              >
-                Athletics
-              </Link>
-            </li>
-            <li>
-              <Link href="/rugby" className="hover:text-[#1a5c38] transition">
-                Rugby
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/basketball"
-                className="hover:text-[#1a5c38] transition"
-              >
-                Basketball
-              </Link>
-            </li>
+            {categories.length > 0 ? (
+              categories.map((cat) => (
+                <li key={cat.slug}>
+                  <Link
+                    href={`/category/${cat.slug}`}
+                    className="hover:text-[#1a5c38] transition"
+                  >
+                    {cat.title}
+                  </Link>
+                </li>
+              ))
+            ) : (
+              <>
+                <li>
+                  <Link
+                    href="/category/football"
+                    className="hover:text-[#1a5c38]"
+                  >
+                    Football
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/category/athletics"
+                    className="hover:text-[#1a5c38]"
+                  >
+                    Athletics
+                  </Link>
+                </li>
+              </>
+            )}
           </ul>
         </div>
 
@@ -115,7 +120,6 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom Bar */}
       {/* Bottom Bar */}
       <div className="max-w-7xl mx-auto px-4 mt-20 pt-8 border-t border-gray-900 flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] text-gray-600 font-bold uppercase tracking-[0.2em]">
         <div className="flex items-center gap-4">
