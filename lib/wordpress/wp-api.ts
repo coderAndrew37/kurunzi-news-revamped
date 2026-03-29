@@ -1,16 +1,9 @@
 /**
  * SleekSites WP-Headless Data Layer
- * Handles fetching and type-casting for Kurunzi Sports Subdomain.
+ * Handles fetching and type-casting for Kurunzi Sports.
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface WordPressFeaturedImage {
-  node: {
-    sourceUrl: string;
-    altText?: string;
-  };
-}
 
 export interface NewsMetadata {
   isHero: boolean;
@@ -22,9 +15,14 @@ export interface SportsPost {
   title: string;
   slug: string;
   date: string;
-  featuredImage: WordPressFeaturedImage | null;
+  featuredImage: string | null; // Changed to string for direct use in <Image />
   newsData: NewsMetadata;
   category: string;
+}
+
+export interface NavCategory {
+  title: string;
+  slug: string;
 }
 
 // ─── Core Fetcher ─────────────────────────────────────────────────────────────
@@ -33,7 +31,6 @@ async function fetchAPI(query: string, variables: Record<string, any> = {}) {
   const res = await fetch(process.env.WORDPRESS_API_URL!, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    // Pass variables at the top level of the request body — NOT nested
     body: JSON.stringify({ query, variables }),
   });
 
@@ -72,7 +69,6 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
       }
     }
   `);
-  // No variables — omit the argument entirely (defaults to {})
 
   const nodes = data?.posts?.nodes || [];
 
@@ -82,7 +78,8 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
       slug: post.slug,
       category: post.categories?.nodes[0]?.name || "General",
       date: post.date,
-      featuredImage: post.featuredImage,
+      // Drill down to sourceUrl so frontend gets a clean string
+      featuredImage: post.featuredImage?.node?.sourceUrl || null,
       newsData: {
         isHero: post.newsData?.isHero ?? false,
         isBreaking: post.newsData?.isBreaking ?? false,
@@ -117,7 +114,7 @@ export async function getArticleBySlug(slug: string) {
       }
     }
   `,
-    { slug }, // ✅ variables: { slug: "some-post-slug" }
+    { slug },
   );
 
   return data?.post;
@@ -166,7 +163,11 @@ export async function getCategoryArchive(
   );
 
   return {
-    posts: data?.posts?.nodes || [],
+    posts: (data?.posts?.nodes || []).map((post: any) => ({
+      ...post,
+      featuredImage: post.featuredImage?.node?.sourceUrl || null,
+      category: post.categories?.nodes[0]?.name || "General",
+    })),
     pageInfo: data?.posts?.pageInfo || { hasNextPage: false, endCursor: null },
   };
 }
@@ -219,7 +220,10 @@ export async function getAuthorProfile(
 
   return {
     author: data?.user || null,
-    posts: data?.user?.posts?.nodes || [],
+    posts: (data?.user?.posts?.nodes || []).map((post: any) => ({
+      ...post,
+      featuredImage: post.featuredImage?.node?.sourceUrl || null,
+    })),
     pageInfo: data?.user?.posts?.pageInfo || {
       hasNextPage: false,
       endCursor: null,
@@ -227,54 +231,22 @@ export async function getAuthorProfile(
   };
 }
 
-export async function getPostsByTag(
-  tagSlug: string,
-  first: number = 10,
-  after: string | null = null,
-) {
-  const data = await fetchAPI(
-    `
-    query GetPostsByTag($tag: String!, $first: Int!, $after: String) {
-      posts(where: { tag: $tag }, first: $first, after: $after) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
+export async function getNavCategories(): Promise<NavCategory[]> {
+  const data = await fetchAPI(`
+    query GetNavCategories {
+      categories(first: 10, where: { hideEmpty: true, exclude: "1" }) {
         nodes {
-          title
+          name
           slug
-          date
-          excerpt
-          categories {
-            nodes {
-              name
-              slug
-            }
-          }
-          featuredImage {
-            node {
-              sourceUrl
-            }
-          }
-          newsData {
-            theLede
-          }
         }
-      }
-      tag(id: $tag, idType: SLUG) {
-        name
-        count
       }
     }
-  `,
-    { tag: tagSlug, first, after },
-  );
+  `);
 
-  return {
-    posts: data?.posts?.nodes || [],
-    tagInfo: data?.tag || null,
-    pageInfo: data?.posts?.pageInfo || { hasNextPage: false, endCursor: null },
-  };
+  return (data?.categories?.nodes || []).map((cat: any) => ({
+    title: cat.name,
+    slug: cat.slug,
+  }));
 }
 
 export async function searchArticles(searchTerm: string) {
@@ -308,24 +280,69 @@ export async function searchArticles(searchTerm: string) {
     { query: searchTerm },
   );
 
-  return data?.posts?.nodes || [];
+  return (data?.posts?.nodes || []).map((post: any) => ({
+    ...post,
+    featuredImage: post.featuredImage?.node?.sourceUrl || null,
+  }));
 }
 
-export async function getNavCategories() {
-  const data = await fetchAPI(`
-    query GetNavCategories {
-      categories(first: 10, where: { hideEmpty: true, exclude: "1" }) {
+export async function getPostsByTag(
+  tagSlug: string,
+  first: number = 10,
+  after: string | null = null,
+) {
+  const data = await fetchAPI(
+    `
+    query GetPostsByTag($tag: [String], $first: Int!, $after: String) {
+      tag(id: $tag, idType: SLUG) {
+        name
+        count
+        slug
+      }
+      posts(where: { tagIn: $tag }, first: $first, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes {
-          name
+          title
           slug
+          date
+          excerpt
+          categories {
+            nodes {
+              name
+              slug
+            }
+          }
+          featuredImage {
+            node {
+              sourceUrl
+            }
+          }
+          newsData {
+            theLede
+          }
         }
       }
     }
-  `);
+  `,
+    {
+      tag: [tagSlug], // WordPress expects an array for tagIn
+      first,
+      after,
+    },
+  );
 
-  // Transform the WordPress 'name' into the 'title' your Navbar expects
-  return (data?.categories?.nodes || []).map((cat: any) => ({
-    title: cat.name,
-    slug: cat.slug,
-  }));
+  return {
+    tagInfo: data?.tag || null,
+    posts: (data?.posts?.nodes || []).map((post: any) => ({
+      ...post,
+      featuredImage: post.featuredImage?.node?.sourceUrl || null,
+    })),
+    pageInfo: data?.posts?.pageInfo || {
+      hasNextPage: false,
+      endCursor: null,
+    },
+  };
 }

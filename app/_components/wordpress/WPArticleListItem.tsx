@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SearchPost } from "@/types/wordpress";
+import SkeletonImage from "../ui/SkeletonImage";
 
 interface ArticleListItemProps {
   post: SearchPost;
@@ -12,7 +13,9 @@ export default function ArticleListItem({
 }: ArticleListItemProps) {
   // Extracting data from the WordPress GraphQL structure
   const category = post.categories?.nodes[0];
-  const imageUrl = post.featuredImage?.node?.sourceUrl || "/placeholder.jpg";
+
+  // Use the actual featured image URL if it exists, otherwise pass null to trigger Skeleton
+  const imageUrl = post.featuredImage?.node?.sourceUrl || null;
 
   // Logic: Prefer 'theLede' from ACF, fallback to WP excerpt, then empty string
   const excerpt =
@@ -25,14 +28,15 @@ export default function ArticleListItem({
     >
       {/* Image container */}
       <div className="relative w-full md:w-48 h-32 shrink-0 overflow-hidden rounded-sm bg-[#f7f4f0] border border-[#e8e2da]">
-        <img
+        <SkeletonImage
           src={imageUrl}
           alt={post.title}
-          className="object-cover w-full h-full transition duration-500 group-hover:scale-110"
-          loading={priority ? "eager" : "lazy"}
+          priority={priority}
+          className="transition duration-500 group-hover:scale-110"
         />
+
         {category && (
-          <span className="absolute top-2 left-2 bg-[#1a5c38] text-white text-[9px] font-bold px-2 py-1 rounded-sm uppercase tracking-widest">
+          <span className="absolute top-2 left-2 z-10 bg-[#1a5c38] text-white text-[9px] font-bold px-2 py-1 rounded-sm uppercase tracking-widest shadow-sm">
             {category.name}
           </span>
         )}

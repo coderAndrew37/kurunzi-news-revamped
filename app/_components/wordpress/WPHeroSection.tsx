@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { SportsPost } from "@/lib/wordpress/wp-api";
 import ArticleLink from "./WPArticleLink";
+import SkeletonImage from "../ui/SkeletonImage";
 
 interface HeroSectionProps {
   article: SportsPost;
@@ -33,7 +33,6 @@ export default function HeroSection({
                 Developing
               </span>
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-l pl-3 border-gray-200">
-                {/* Fallback to Sports if category is missing */}
                 Sports News
               </span>
             </div>
@@ -84,15 +83,11 @@ export default function HeroSection({
               className="block group relative overflow-hidden rounded-xl bg-gray-100 shadow-2xl"
             >
               <div className="relative aspect-video lg:aspect-4/3 xl:aspect-16/10 w-full">
-                <Image
-                  src={
-                    article.featuredImage?.node.sourceUrl ||
-                    "/images/placeholder.jpg"
-                  }
+                <SkeletonImage
+                  src={article.featuredImage}
                   alt={article.title}
-                  fill
                   priority={priority}
-                  className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                  className="transition-transform duration-1000 group-hover:scale-105"
                 />
               </div>
               {/* Subtle Overlay for depth */}

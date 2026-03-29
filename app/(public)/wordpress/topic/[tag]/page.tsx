@@ -2,6 +2,7 @@ import { getPostsByTag } from "@/lib/wordpress/wp-api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Hash } from "lucide-react";
+import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
 
 interface TagPageProps {
   params: Promise<{ tag: string }>;
@@ -32,10 +33,12 @@ export default async function TagPage({ params, searchParams }: TagPageProps) {
           <span className="bg-[#1a5c38] text-white p-1.5 rounded-sm">
             <Hash className="w-4 h-4" />
           </span>
-          <span className="kn-kicker !mb-0 text-[#1a5c38]">Trending Topic</span>
+          <span className="text-[#1a5c38] font-bold uppercase tracking-[0.2em] text-[10px]">
+            Trending Topic
+          </span>
         </div>
 
-        <h1 className="kn-headline text-4xl md:text-5xl mb-4 uppercase tracking-tighter">
+        <h1 className="kn-headline text-4xl md:text-5xl mb-4 uppercase tracking-tighter text-[#0d0d0d]">
           {tagName}
         </h1>
 
@@ -52,57 +55,12 @@ export default async function TagPage({ params, searchParams }: TagPageProps) {
         )}
       </header>
 
-      {/* Article list */}
+      {/* Article list - Unified Component */}
       {posts.length > 0 ? (
-        <div className="flex flex-col gap-12">
-          {posts.map((post: any) => {
-            const category = post.categories?.nodes[0];
-            return (
-              <article
-                key={post.slug}
-                className="group grid md:grid-cols-[240px_1fr] gap-8 items-start"
-              >
-                {/* Thumbnail */}
-                <Link
-                  href={`/${category?.slug || "news"}/${post.slug}`}
-                  className="kn-hero-ratio aspect-[16/9] md:aspect-[4/3] rounded-sm overflow-hidden bg-[#f7f4f0]"
-                >
-                  <img
-                    src={
-                      post.featuredImage?.node?.sourceUrl || "/placeholder.jpg"
-                    }
-                    alt={post.title}
-                    className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                  />
-                </Link>
-
-                {/* Content */}
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="font-['Barlow_Condensed'] text-[10px] font-bold text-[#1a5c38] uppercase tracking-[0.2em]">
-                      {category?.name || "General"}
-                    </span>
-                  </div>
-                  <h2 className="kn-headline text-xl mb-3 group-hover:text-[#1a5c38] transition-colors leading-tight">
-                    <Link href={`/${category?.slug || "news"}/${post.slug}`}>
-                      {post.title}
-                    </Link>
-                  </h2>
-                  <p className="font-['Source_Serif_4'] text-[#3d3935] text-sm line-clamp-2 mb-4 leading-relaxed">
-                    {post.newsData?.theLede ||
-                      post.excerpt?.replace(/<[^>]+>/g, "")}
-                  </p>
-                  <div className="flex items-center gap-4 text-[#b5aea7] font-['Barlow_Condensed'] font-bold text-[10px] uppercase tracking-widest">
-                    <span>
-                      {new Date(post.date).toLocaleDateString("en-KE", {
-                        dateStyle: "long",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+        <div className="flex flex-col gap-2">
+          {posts.map((post: any) => (
+            <ArticleListItem key={post.slug} post={post} />
+          ))}
         </div>
       ) : (
         <div className="py-24 text-center border-2 border-dashed border-[#e8e2da] bg-white rounded-sm">
@@ -117,7 +75,7 @@ export default async function TagPage({ params, searchParams }: TagPageProps) {
         <nav className="mt-20 pt-8 border-t-2 border-[#e8e2da] flex justify-center">
           <Link
             href={`/topic/${tagSlug}?cursor=${pageInfo.endCursor}`}
-            className="kn-action-btn bg-black text-white px-10 py-4 rounded-full flex items-center gap-3 hover:bg-[#1a5c38] transition-all"
+            className="bg-black text-white px-10 py-4 rounded-full flex items-center gap-3 hover:bg-[#1a5c38] transition-all font-bold uppercase text-sm tracking-widest shadow-lg"
           >
             Explore More {tagName}
             <ChevronRight className="w-5 h-5" />

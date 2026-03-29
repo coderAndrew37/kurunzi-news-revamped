@@ -2,6 +2,7 @@ import { getCategoryArchive } from "@/lib/wordpress/wp-api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
+import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -15,7 +16,7 @@ export default async function CategoryArchivePage({
   const { slug: categorySlug } = await params;
   const { cursor } = await searchParams;
 
-  // Using the new cursor-based function
+  // Using the cursor-based function for infinite scroll/pagination
   const { posts, pageInfo } = await getCategoryArchive(
     categorySlug,
     10,
@@ -33,8 +34,10 @@ export default async function CategoryArchivePage({
       <header className="mb-16 border-b-2 border-[#e8e2da] pb-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <span className="kn-kicker">Digital Archive</span>
-            <h1 className="kn-headline text-4xl mb-2 uppercase">
+            <span className="text-[#1a5c38] font-bold uppercase tracking-[0.2em] text-[10px]">
+              Digital Archive
+            </span>
+            <h1 className="kn-headline text-4xl mb-2 uppercase text-[#0d0d0d]">
               {categoryName} <span className="text-[#1a5c38]">History</span>
             </h1>
             <p className="font-['Source_Serif_4'] text-[#7a736c] italic">
@@ -43,55 +46,18 @@ export default async function CategoryArchivePage({
           </div>
 
           <Link
-            href={`/${categorySlug}`}
-            className="kn-action-btn hover:bg-[#1a5c38] hover:text-white"
+            href={`/category/${categorySlug}`}
+            className="inline-flex items-center px-6 py-2 border-2 border-[#1a5c38] text-[#1a5c38] font-bold uppercase text-xs tracking-widest hover:bg-[#1a5c38] hover:text-white transition-all rounded-sm"
           >
             ← Latest {categoryName}
           </Link>
         </div>
       </header>
 
-      {/* Article List */}
-      <div className="flex flex-col gap-12">
+      {/* Article List - Unified Component */}
+      <div className="flex flex-col gap-2">
         {posts.map((post: any) => (
-          <article
-            key={post.slug}
-            className="group grid md:grid-cols-[200px_1fr] gap-8 items-start"
-          >
-            {/* Thumbnail */}
-            <div className="kn-hero-ratio aspect-[4/3] rounded-sm overflow-hidden bg-[#f7f4f0]">
-              <img
-                src={post.featuredImage?.node?.sourceUrl || "/placeholder.jpg"}
-                alt={post.title}
-                className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-              />
-            </div>
-
-            {/* Content */}
-            <div>
-              <h2 className="kn-headline text-xl mb-3 group-hover:text-[#1a5c38] transition-colors">
-                <Link href={`/${categorySlug}/${post.slug}`}>{post.title}</Link>
-              </h2>
-              <p className="font-['Source_Serif_4'] text-[#3d3935] line-clamp-2 mb-4 leading-relaxed">
-                {post.newsData?.theLede ||
-                  post.excerpt?.replace(/<[^>]+>/g, "")}
-              </p>
-              <div className="flex items-center gap-4 text-[#b5aea7] font-['Barlow_Condensed'] font-bold text-xs uppercase tracking-widest">
-                <span>
-                  {new Date(post.date).toLocaleDateString("en-KE", {
-                    dateStyle: "long",
-                  })}
-                </span>
-                <span className="w-1 h-1 bg-[#e8e2da] rounded-full" />
-                <Link
-                  href={`/${categorySlug}/${post.slug}`}
-                  className="text-[#1a5c38] hover:underline"
-                >
-                  Read Story
-                </Link>
-              </div>
-            </div>
-          </article>
+          <ArticleListItem key={post.slug} post={post} />
         ))}
       </div>
 
@@ -100,7 +66,7 @@ export default async function CategoryArchivePage({
         <nav className="mt-20 pt-8 border-t-2 border-[#e8e2da] flex justify-center">
           <Link
             href={`/category/${categorySlug}?cursor=${pageInfo.endCursor}`}
-            className="kn-action-btn bg-black text-white px-10 py-4 rounded-full flex items-center gap-3 hover:bg-[#1a5c38] transition-all"
+            className="bg-black text-white px-10 py-4 rounded-full flex items-center gap-3 hover:bg-[#1a5c38] transition-all font-bold uppercase text-sm tracking-widest shadow-xl"
           >
             Load Older Stories
             <ChevronRight className="w-5 h-5" />
@@ -108,10 +74,10 @@ export default async function CategoryArchivePage({
         </nav>
       )}
 
-      {/* Back to Top for Mobile */}
+      {/* End of Archive Footer */}
       {!pageInfo.hasNextPage && posts.length > 0 && (
-        <div className="mt-20 text-center">
-          <p className="font-['Barlow_Condensed'] text-[#b5aea7] uppercase tracking-tighter font-bold">
+        <div className="mt-20 text-center py-10 border-t border-[#e8e2da]">
+          <p className="font-['Barlow_Condensed'] text-[#b5aea7] uppercase tracking-[0.3em] font-black text-xs">
             End of Archive
           </p>
         </div>

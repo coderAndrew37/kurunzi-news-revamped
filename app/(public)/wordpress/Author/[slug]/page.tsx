@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
+import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -41,8 +42,10 @@ export default async function AuthorPage({ params, searchParams }: PageProps) {
           )}
         </div>
         <div className="text-center md:text-left flex-1">
-          <span className="kn-kicker">Staff Writer</span>
-          <h1 className="kn-headline text-4xl md:text-5xl mb-3 uppercase tracking-tighter">
+          <span className="kn-kicker text-[#1a5c38] font-bold uppercase tracking-widest text-xs">
+            Staff Writer
+          </span>
+          <h1 className="kn-headline text-4xl md:text-5xl mb-3 uppercase tracking-tighter text-[#0d0d0d]">
             {author.name}
           </h1>
           <p className="font-['Source_Serif_4'] text-lg text-[#3d3935] leading-relaxed max-w-2xl italic">
@@ -54,7 +57,7 @@ export default async function AuthorPage({ params, searchParams }: PageProps) {
 
       {/* Author's Articles Section */}
       <div className="flex items-center gap-4 mb-12">
-        <h2 className="kn-headline text-2xl uppercase">
+        <h2 className="kn-headline text-2xl uppercase text-[#0d0d0d]">
           Latest from {author.name.split(" ")[0]}
         </h2>
         <div className="h-[2px] flex-1 bg-[#e8e2da]" />
@@ -67,60 +70,10 @@ export default async function AuthorPage({ params, searchParams }: PageProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {posts.map((post: any) => {
-            const category = post.categories?.nodes[0];
-            return (
-              <article key={post.slug} className="group flex flex-col">
-                {/* Thumbnail */}
-                <Link
-                  href={`/${category?.slug || "news"}/${post.slug}`}
-                  className="relative aspect-[16/9] w-full overflow-hidden bg-[#f7f4f0] mb-4 rounded-sm"
-                >
-                  <Image
-                    src={
-                      post.featuredImage?.node?.sourceUrl || "/placeholder.jpg"
-                    }
-                    alt={post.title}
-                    className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                    fill
-                  />
-                  {category && (
-                    <span className="absolute top-3 left-3 bg-[#1a5c38] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                      {category.name}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Content */}
-                <div className="flex flex-col flex-1">
-                  <h3 className="kn-headline text-xl mb-3 group-hover:text-[#1a5c38] transition-colors line-clamp-2">
-                    <Link href={`/${category?.slug || "news"}/${post.slug}`}>
-                      {post.title}
-                    </Link>
-                  </h3>
-                  <p className="font-['Source_Serif_4'] text-[#3d3935] text-sm line-clamp-2 mb-4 leading-relaxed">
-                    {post.newsData?.theLede ||
-                      post.excerpt?.replace(/<[^>]+>/g, "")}
-                  </p>
-
-                  <div className="mt-auto pt-4 border-t border-[#e8e2da] flex items-center justify-between">
-                    <span className="font-['Barlow_Condensed'] text-xs font-bold text-[#b5aea7] uppercase">
-                      {new Date(post.date).toLocaleDateString("en-KE", {
-                        dateStyle: "medium",
-                      })}
-                    </span>
-                    <Link
-                      href={`/${category?.slug || "news"}/${post.slug}`}
-                      className="text-[#1a5c38] text-xs font-bold uppercase tracking-tighter hover:underline"
-                    >
-                      Full Story →
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+        <div className="flex flex-col gap-2">
+          {posts.map((post: any) => (
+            <ArticleListItem key={post.slug} post={post} />
+          ))}
         </div>
       )}
 
@@ -129,7 +82,7 @@ export default async function AuthorPage({ params, searchParams }: PageProps) {
         <nav className="mt-20 pt-8 border-t-2 border-[#e8e2da] flex justify-center">
           <Link
             href={`/author/${slug}?cursor=${pageInfo.endCursor}`}
-            className="kn-action-btn bg-black text-white px-10 py-4 rounded-full flex items-center gap-3 hover:bg-[#1a5c38] transition-all"
+            className="bg-black text-white px-10 py-4 rounded-full flex items-center gap-3 hover:bg-[#1a5c38] transition-all font-bold uppercase text-sm tracking-widest"
           >
             Load More Stories
             <ChevronRight className="w-5 h-5" />

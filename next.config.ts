@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
         hostname: "cdn.sanity.io",
         pathname: "**",
       },
+
       // ADD THIS SECTION FOR SUPABASE
       {
         protocol: "https",
@@ -20,6 +21,18 @@ const nextConfig: NextConfig = {
         hostname: "kurunzi-sports-backend.local",
         port: "",
         pathname: "/wp-content/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "kurunzinews.co.ke",
+        port: "",
+        pathname: "/wp-content/uploads/**",
+      },
+      //add unsplash for local development with ngrok
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "**",
       },
     ],
     // High-performance news sites use specific device sizes

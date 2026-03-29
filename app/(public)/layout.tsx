@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getNavCategories } from "@/lib/wordpress/wp-api";
 import Navbar from "../_components/wordpress/WPNavbar";
-import Footer from "../_components/Footer";
+import Footer from "../_components/wordpress/WPFooter";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://kurunzinews.co.ke"), // Update if moving to .com or sports subdomain
