@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
         pathname: "**",
       },
+      //add secure.gravatar.com for local development with ngrok
+      {
+        protocol: "https",
+        hostname: "secure.gravatar.com",
+        pathname: "**",
+      },
     ],
     // High-performance news sites use specific device sizes
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],

@@ -369,8 +369,10 @@ export default function ArticlePageClient({
           <div className="kn-hero-ratio">
             <SkeletonImage
               src={article.featuredImage?.node.sourceUrl}
-              alt={article.featuredImage?.node.altText ?? article.title}
-              priority
+              alt={article.featuredImage?.node.altText || article.title}
+              caption={article.featuredImage?.node.caption} // From WP Caption field
+              credit={article.featuredImage?.node.photoSource}
+              className="kn-hero-ratio"
             />
           </div>
           {article.featuredImage?.node.altText && (

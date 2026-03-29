@@ -1,6 +1,5 @@
 import { Calendar, ArrowRight } from "lucide-react";
 import { SportsPost } from "@/lib/wordpress/wp-api";
-
 import Link from "next/link";
 import SkeletonImage from "../ui/SkeletonImage";
 import ArticleLink from "./WPArticleLink";
@@ -24,7 +23,6 @@ export default function HeroSection({
     year: "numeric",
   });
 
-  // Up to 5 latest posts, excluding the hero itself
   const sidebarPosts = latestPosts
     .filter((p) => p.slug !== hero.slug)
     .slice(0, 5);
@@ -81,14 +79,16 @@ export default function HeroSection({
 
         {/* ── Main grid ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-          {/* ── Hero story (left, 8 cols) ───────────────────────────────── */}
+          {/* Hero story — 8 cols */}
           <div className="lg:col-span-8">
             <ArticleLink
               categorySlug={hero.category}
               slug={hero.slug}
               className="group block"
             >
-              {/* Image */}
+              {/* Image
+                  SportsPost.featuredImage is already a flat string | null
+                  from the getSportsPosts() mapper in wp-api.ts — pass it directly */}
               <div
                 className="relative w-full overflow-hidden mb-6"
                 style={{
@@ -104,7 +104,6 @@ export default function HeroSection({
                   className="transition-transform duration-700 group-hover:scale-[1.03]"
                 />
 
-                {/* Category / breaking badge */}
                 {hero.category && (
                   <div className="absolute top-4 left-4">
                     <span
@@ -151,7 +150,6 @@ export default function HeroSection({
                   </p>
                 )}
 
-                {/* Meta row */}
                 <div
                   className="flex items-center gap-4 pt-4"
                   style={{ borderTop: "1px solid var(--rule)" }}
@@ -191,10 +189,9 @@ export default function HeroSection({
             </ArticleLink>
           </div>
 
-          {/* ── Latest sidebar (right, 4 cols) ─────────────────────────── */}
+          {/* Latest sidebar — 4 cols */}
           <aside className="lg:col-span-4">
             <div className="lg:sticky lg:top-20">
-              {/* Sidebar header */}
               <div
                 className="flex items-center justify-between pb-4 mb-1"
                 style={{ borderBottom: "1px solid var(--rule)" }}
@@ -214,7 +211,6 @@ export default function HeroSection({
                 <span className="kn-live-dot" />
               </div>
 
-              {/* Numbered post list — reuses kn-latest-* classes from article-page.css */}
               <div>
                 {sidebarPosts.map((post, i) => (
                   <ArticleLink
@@ -248,7 +244,6 @@ export default function HeroSection({
                 ))}
               </div>
 
-              {/* View all CTA */}
               <div
                 className="mt-5 pt-5"
                 style={{ borderTop: "1px solid var(--rule)" }}
@@ -265,7 +260,7 @@ export default function HeroSection({
           </aside>
         </div>
 
-        {/* ── Mobile "view all" link ──────────────────────────────────────── */}
+        {/* Mobile view all */}
         <div
           className="mt-10 pt-8 lg:hidden"
           style={{ borderTop: "1px solid var(--rule)" }}

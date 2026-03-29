@@ -14,37 +14,40 @@ export default async function HomePage() {
     );
   }
 
-  // 1. Extract the Hero Article
+  // 1. Hero — prefer a post flagged isHero, otherwise fall back to the latest
   const heroArticle =
     allPosts.find((post) => post.newsData.isHero) || allPosts[0];
 
-  // 2. Filter out the hero from the list to avoid duplication
+  // 2. Everything else, newest first
   const remainingPosts = allPosts.filter(
     (post) => post.slug !== heroArticle.slug,
   );
 
-  // 3. Generate Unique Categories
-  // We use p.category which is now defined in our interface
+  // 3. Unique categories from remaining posts (preserves date-desc order)
   const categories = Array.from(new Set(remainingPosts.map((p) => p.category)));
 
-  // 4. Create Sections
+  // 4. Per-category sections
   const sections = categories.map((cat) => ({
     title: cat,
-    slug: cat.toLowerCase().replace(/\s+/g, "-"), // Clean slug for URLs (e.g. "Local News" -> "local-news")
+    slug: cat.toLowerCase().replace(/\s+/g, "-"),
     posts: remainingPosts.filter((p) => p.category === cat),
   }));
 
   return (
-    <main className="flex flex-col gap-12 bg-white pb-20">
+    <main
+      className="flex flex-col gap-0 pb-20"
+      style={{ background: "var(--paper)" }}
+    >
       <BreakingNewsTicker />
 
-      {heroArticle && <HeroSection article={heroArticle} />}
+      {/* Pass hero + full remaining list so the sidebar can show latest posts */}
+      <HeroSection hero={heroArticle} latestPosts={remainingPosts} />
 
       {sections.map((section) => (
         <NewsSection
           key={section.slug}
           slug={section.slug}
-          title={section.title || ""}
+          title={section.title}
           posts={section.posts}
         />
       ))}

@@ -35,7 +35,12 @@ export interface PageInfo {
 
 // Internal WPGraphQL Response Shapes
 interface WPImage {
-  node: { sourceUrl: string; altText?: string };
+  node: {
+    sourceUrl: string;
+    altText?: string;
+    caption?: string; // The descriptive caption
+    photoSource?: string;
+  };
 }
 
 interface WPCategory {
@@ -153,7 +158,7 @@ export async function getArticleBySlug(
         excerpt
         slug
         categories { nodes { name slug } }
-        featuredImage { node { sourceUrl altText } }
+        featuredImage { node { sourceUrl altText caption photoSource } }
         newsData { isHero isBreaking theLede }
         author {
           node {
