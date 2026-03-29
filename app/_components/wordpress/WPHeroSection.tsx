@@ -1,99 +1,294 @@
-import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { Calendar, ArrowRight } from "lucide-react";
 import { SportsPost } from "@/lib/wordpress/wp-api";
-import ArticleLink from "./WPArticleLink";
+
+import Link from "next/link";
 import SkeletonImage from "../ui/SkeletonImage";
+import ArticleLink from "./WPArticleLink";
 
 interface HeroSectionProps {
-  article: SportsPost;
+  hero: SportsPost;
+  latestPosts: SportsPost[];
   priority?: boolean;
 }
 
 export default function HeroSection({
-  article,
+  hero,
+  latestPosts,
   priority = true,
 }: HeroSectionProps) {
-  if (!article) return null;
+  if (!hero) return null;
 
-  // Formatting the date for Kenyan audience
-  const formattedDate = new Date(article.date).toLocaleDateString("en-KE", {
+  const formattedDate = new Date(hero.date).toLocaleDateString("en-KE", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 
+  // Up to 5 latest posts, excluding the hero itself
+  const sidebarPosts = latestPosts
+    .filter((p) => p.slug !== hero.slug)
+    .slice(0, 5);
+
   return (
-    <section className="relative bg-white border-b border-gray-200 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
-          {/* Text Content */}
-          <div className="lg:col-span-5 order-2 lg:order-1 space-y-6">
-            <div className="flex items-center gap-3">
-              <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-sm uppercase tracking-[0.2em] flex items-center gap-2 shadow-sm">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                Developing
-              </span>
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-l pl-3 border-gray-200">
-                Sports News
-              </span>
-            </div>
-
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] tracking-tight">
-              <ArticleLink
-                slug={article.slug}
-                className="hover:text-red-600 transition-colors duration-300"
-              >
-                {article.title}
-              </ArticleLink>
-            </h1>
-
-            {article.newsData.theLede && (
-              <p className="text-lg text-gray-600 leading-relaxed font-serif line-clamp-3">
-                {article.newsData.theLede}
-              </p>
-            )}
-
-            <div className="flex flex-wrap items-center gap-6 pt-6 text-gray-500 border-t border-gray-100">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-red-600" />
-                <span className="text-xs font-bold uppercase tracking-tighter">
-                  {formattedDate}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-red-600" />
-                <span className="text-xs font-bold uppercase tracking-tighter">
-                  Quick Read
-                </span>
-              </div>
-
-              <ArticleLink
-                slug={article.slug}
-                className="ml-auto inline-flex items-center gap-2 text-red-600 hover:text-black font-black text-[10px] uppercase tracking-[0.2em] transition-all group"
-              >
-                Read Story
-                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
-              </ArticleLink>
-            </div>
+    <section
+      className="py-12 lg:py-16 border-b"
+      style={{ background: "var(--paper)", borderColor: "var(--rule)" }}
+    >
+      <div className="max-w-[1140px] mx-auto px-6">
+        {/* ── Section header ─────────────────────────────────────────────── */}
+        <div
+          className="flex items-center justify-between mb-10 pb-4"
+          style={{ borderBottom: "2px solid var(--ink)" }}
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="w-1.5 h-8"
+              style={{ background: "var(--accent)" }}
+            />
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "1.75rem",
+                fontWeight: 900,
+                letterSpacing: "-0.02em",
+                color: "var(--ink)",
+              }}
+            >
+              Top Story
+            </h2>
           </div>
 
-          {/* Image Content */}
-          <div className="lg:col-span-7 order-1 lg:order-2">
+          <Link
+            href={`/${hero.category?.toLowerCase()}`}
+            className="hidden lg:flex items-center gap-2 group"
+            style={{
+              fontFamily: "var(--font-ui)",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--accent)",
+              textDecoration: "none",
+            }}
+          >
+            All {hero.category}
+            <ArrowRight
+              size={14}
+              className="transition-transform duration-200 group-hover:translate-x-1"
+            />
+          </Link>
+        </div>
+
+        {/* ── Main grid ──────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+          {/* ── Hero story (left, 8 cols) ───────────────────────────────── */}
+          <div className="lg:col-span-8">
             <ArticleLink
-              slug={article.slug}
-              className="block group relative overflow-hidden rounded-xl bg-gray-100 shadow-2xl"
+              categorySlug={hero.category}
+              slug={hero.slug}
+              className="group block"
             >
-              <div className="relative aspect-video lg:aspect-4/3 xl:aspect-16/10 w-full">
+              {/* Image */}
+              <div
+                className="relative w-full overflow-hidden mb-6"
+                style={{
+                  aspectRatio: "16/9",
+                  background: "var(--paper-warm)",
+                  borderRadius: 4,
+                }}
+              >
                 <SkeletonImage
-                  src={article.featuredImage}
-                  alt={article.title}
+                  src={hero.featuredImage}
+                  alt={hero.title}
                   priority={priority}
-                  className="transition-transform duration-1000 group-hover:scale-105"
+                  className="transition-transform duration-700 group-hover:scale-[1.03]"
                 />
+
+                {/* Category / breaking badge */}
+                {hero.category && (
+                  <div className="absolute top-4 left-4">
+                    <span
+                      className="kn-breaking-badge"
+                      style={{ background: "var(--accent)" }}
+                    >
+                      {hero.newsData?.isBreaking && (
+                        <span className="kn-pulse-dot" />
+                      )}
+                      {hero.category}
+                    </span>
+                  </div>
+                )}
               </div>
-              {/* Subtle Overlay for depth */}
-              <div className="absolute inset-0 ring-1 ring-inset ring-black/10 rounded-xl" />
+
+              {/* Headline + lede */}
+              <div className="space-y-4">
+                <h3
+                  className="group-hover:opacity-80 transition-opacity"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 900,
+                    fontSize: "clamp(1.5rem, 3vw, 2.25rem)",
+                    lineHeight: 1.12,
+                    letterSpacing: "-0.025em",
+                    color: "var(--ink)",
+                  }}
+                >
+                  {hero.title}
+                </h3>
+
+                {hero.newsData?.theLede && (
+                  <p
+                    className="line-clamp-3"
+                    style={{
+                      fontFamily: "var(--font-body)",
+                      fontSize: "1.0625rem",
+                      fontStyle: "italic",
+                      color: "var(--ink-soft)",
+                      lineHeight: 1.65,
+                    }}
+                  >
+                    {hero.newsData.theLede}
+                  </p>
+                )}
+
+                {/* Meta row */}
+                <div
+                  className="flex items-center gap-4 pt-4"
+                  style={{ borderTop: "1px solid var(--rule)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar size={12} style={{ color: "var(--accent)" }} />
+                    <span
+                      style={{
+                        fontFamily: "var(--font-ui)",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        color: "var(--ink-muted)",
+                      }}
+                    >
+                      {formattedDate}
+                    </span>
+                  </div>
+
+                  <span
+                    className="ml-auto inline-flex items-center gap-1.5 group-hover:gap-2.5 transition-all"
+                    style={{
+                      fontFamily: "var(--font-ui)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: "var(--accent)",
+                    }}
+                  >
+                    Read story
+                    <ArrowRight size={13} />
+                  </span>
+                </div>
+              </div>
             </ArticleLink>
           </div>
+
+          {/* ── Latest sidebar (right, 4 cols) ─────────────────────────── */}
+          <aside className="lg:col-span-4">
+            <div className="lg:sticky lg:top-20">
+              {/* Sidebar header */}
+              <div
+                className="flex items-center justify-between pb-4 mb-1"
+                style={{ borderBottom: "1px solid var(--rule)" }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-ui)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  Latest
+                </span>
+                <span className="kn-live-dot" />
+              </div>
+
+              {/* Numbered post list — reuses kn-latest-* classes from article-page.css */}
+              <div>
+                {sidebarPosts.map((post, i) => (
+                  <ArticleLink
+                    key={post.slug}
+                    categorySlug={post.category}
+                    slug={post.slug}
+                    className="kn-latest-item"
+                  >
+                    <span className="kn-latest-num">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="kn-latest-cat">{post.category}</span>
+                      <h4 className="kn-latest-headline">{post.title}</h4>
+                      <span
+                        className="block mt-1"
+                        style={{
+                          fontFamily: "var(--font-ui)",
+                          fontSize: 10,
+                          color: "var(--ink-faint)",
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        {new Date(post.date).toLocaleDateString("en-KE", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </ArticleLink>
+                ))}
+              </div>
+
+              {/* View all CTA */}
+              <div
+                className="mt-5 pt-5"
+                style={{ borderTop: "1px solid var(--rule)" }}
+              >
+                <Link
+                  href={`/${hero.category?.toLowerCase()}`}
+                  className="kn-newsletter-btn"
+                  style={{ background: "var(--ink)" }}
+                >
+                  View all {hero.category} stories
+                </Link>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        {/* ── Mobile "view all" link ──────────────────────────────────────── */}
+        <div
+          className="mt-10 pt-8 lg:hidden"
+          style={{ borderTop: "1px solid var(--rule)" }}
+        >
+          <Link
+            href={`/${hero.category?.toLowerCase()}`}
+            className="flex items-center justify-center gap-2 group"
+            style={{
+              fontFamily: "var(--font-ui)",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--accent)",
+              textDecoration: "none",
+            }}
+          >
+            All {hero.category} stories
+            <ArrowRight
+              size={14}
+              className="transition-transform duration-200 group-hover:translate-x-1"
+            />
+          </Link>
         </div>
       </div>
     </section>

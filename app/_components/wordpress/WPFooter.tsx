@@ -131,7 +131,9 @@ export default async function Footer() {
         <div className="flex items-center gap-1 group">
           <span>CRAFTED BY</span>
           <Link
-            href="https://sleeksites.co.ke"
+            href={
+              process.env.NEXT_PUBLIC_AGENCY_URL || "https://sleeksites.co.ke"
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-400 hover:text-[#1a5c38] transition-colors"

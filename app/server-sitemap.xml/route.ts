@@ -1,16 +1,15 @@
 import { getServerSideSitemap } from "next-sitemap";
-import { NewsCardProps } from "@/types";
-import { sanityServerClient as client } from "@/lib/sanity/client";
+import { getAllPostSlugs } from "@/lib/wordpress/wp-api";
 
 export async function GET() {
-  const posts = await client.fetch(
-    `*[_type == "post"]{ "slug": slug.current, _updatedAt }`,
-  );
+  const posts = await getAllPostSlugs();
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL || "https://sports.kurunzinews.com";
 
-  const fields = posts.map((post: NewsCardProps) => ({
-    loc: `https://kurunzinews.co.ke/${post.category}/${post.slug}`,
-    lastmod: post.date,
-    changefreq: "daily",
+  const fields = posts.map((post) => ({
+    loc: `${baseUrl}/${post.category.toLowerCase()}/${post.slug}`,
+    lastmod: new Date(post.date).toISOString(),
+    changefreq: "daily" as const,
     priority: 0.7,
   }));
 

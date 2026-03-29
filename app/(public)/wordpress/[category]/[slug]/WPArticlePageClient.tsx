@@ -2,12 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Calendar,
   Clock,
-  User,
   Share2,
   Bookmark,
   ChevronLeft,
@@ -19,63 +17,19 @@ import {
   ArrowUp,
 } from "lucide-react";
 
-// Companion stylesheet — custom properties, fonts, and things Tailwind can't express
 import "./article-page.css";
 import ArticleLink from "@/app/_components/wordpress/WPArticleLink";
-
-// ─── Types (aligned with your GraphQL query shapes) ───────────────────────────
-
-export interface WordPressFeaturedImage {
-  node: { sourceUrl: string; altText?: string };
-}
-
-export interface NewsMetadata {
-  isHero: boolean;
-  isBreaking: boolean;
-  theLede: string;
-}
-
-/** Full single-article shape — extend getArticleBySlug to include author */
-export interface ArticleDetail {
-  title: string;
-  slug: string;
-  date: string;
-  content: string;
-  excerpt: string;
-  featuredImage: WordPressFeaturedImage | null;
-  newsData: NewsMetadata;
-  categories: { nodes: { name: string; slug: string }[] };
-  author?: {
-    node: {
-      name: string;
-      slug: string;
-      avatar?: { url: string };
-      description?: string;
-    };
-  };
-}
-
-/** Lightweight shape from getSportsPosts — used in the sidebar */
-export interface SportsPost {
-  title: string;
-  slug: string;
-  date: string;
-  category: string;
-  featuredImage: WordPressFeaturedImage | null;
-  newsData: NewsMetadata;
-}
-
-interface ArticlePageClientProps {
-  article: ArticleDetail;
-  latestPosts: SportsPost[];
-  relatedPosts: SportsPost[];
-}
+import {
+  WPPostNode as ArticleDetail,
+  SportsPost,
+} from "@/lib/wordpress/wp-api";
+import SkeletonImage from "@/app/_components/ui/SkeletonImage";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calcReadingTime(html: string) {
   const text = html.replace(/<[^>]+>/g, " ").trim();
-  const words = text.split(/\s+/).filter((word) => word.length > 0).length;
+  const words = text.split(/\s+/).filter((w) => w.length > 0).length;
   return Math.max(1, Math.ceil(words / 200));
 }
 
@@ -95,6 +49,12 @@ function stripHtml(html: string) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+interface ArticlePageClientProps {
+  article: ArticleDetail;
+  latestPosts: SportsPost[];
+  relatedPosts: SportsPost[];
+}
+
 export default function ArticlePageClient({
   article,
   latestPosts,
@@ -109,7 +69,6 @@ export default function ArticlePageClient({
   const [showTop, setShowTop] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
 
-  // Derived data
   const primaryCategory = article.categories?.nodes[0];
   const pub = new Date(article.date);
   const formattedDate = pub.toLocaleDateString("en-KE", {
@@ -119,11 +78,9 @@ export default function ArticlePageClient({
   });
   const rt = calcReadingTime(article.content);
   const ago = getTimeAgo(pub);
-  // theLede is the custom "deck" field; fall back to stripped excerpt
   const lede = article.newsData?.theLede || stripHtml(article.excerpt ?? "");
   const authorNode = article.author?.node;
 
-  // Restore bookmark state on mount
   useEffect(() => {
     const saved: string[] = JSON.parse(
       localStorage.getItem("kn_bookmarks") ?? "[]",
@@ -131,7 +88,6 @@ export default function ArticlePageClient({
     setBookmarked(saved.includes(article.slug));
   }, [article.slug]);
 
-  // Reading progress + back-to-top visibility
   useEffect(() => {
     const onScroll = () => {
       const h = document.documentElement.scrollHeight - window.innerHeight;
@@ -142,7 +98,6 @@ export default function ArticlePageClient({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close share panel on outside click
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (shareRef.current && !shareRef.current.contains(e.target as Node))
@@ -211,7 +166,7 @@ export default function ArticlePageClient({
         <div className="max-w-[1140px] mx-auto px-6 h-12 flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-none p-0"
+            className="flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
             style={{
               fontFamily: "var(--font-ui)",
               fontSize: 11,
@@ -243,18 +198,16 @@ export default function ArticlePageClient({
       </nav>
 
       {/* ════════════════════════════════════════════════════════════════════
-          ARTICLE HEADER
+          HEADER
       ════════════════════════════════════════════════════════════════════ */}
       <header className="max-w-[1140px] mx-auto px-6 pt-12 pb-8">
         <div className="max-w-[720px] mx-auto">
-          {/* Kicker */}
           {primaryCategory && (
             <Link href={`/${primaryCategory.slug}`} className="kn-kicker">
               {primaryCategory.name}
             </Link>
           )}
 
-          {/* Breaking badge */}
           {article.newsData?.isBreaking && (
             <div className="flex items-center gap-2 mb-4">
               <span className="kn-breaking-badge">
@@ -264,36 +217,29 @@ export default function ArticlePageClient({
             </div>
           )}
 
-          {/* Headline */}
           <h1 className="kn-headline">{article.title}</h1>
-
-          {/* Lede / deck */}
           {lede && <p className="kn-deck">{lede}</p>}
 
-          {/* ── Byline ────────────────────────────────────────────────────── */}
+          {/* Byline */}
           <div
             className="flex flex-wrap items-center justify-between gap-4 pt-5"
             style={{ borderTop: "1px solid var(--rule)" }}
           >
-            {/* Author */}
             <div className="flex items-center gap-3">
+              {/*
+               * Author avatar
+               * SkeletonImage handles the null/undefined case with the branded
+               * Kurunzi placeholder — no need for a manual fallback here.
+               */}
               <div
-                className="relative w-11 h-11 rounded-full overflow-hidden flex items-center justify-center shrink-0"
-                style={{
-                  background: "var(--paper-warm)",
-                  border: "2px solid var(--rule)",
-                }}
+                className="relative w-11 h-11 rounded-full overflow-hidden shrink-0"
+                style={{ border: "2px solid var(--rule)" }}
               >
-                {authorNode?.avatar?.url ? (
-                  <Image
-                    src={authorNode.avatar.url}
-                    alt={authorNode.name}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <User size={18} style={{ color: "var(--ink-faint)" }} />
-                )}
+                <SkeletonImage
+                  src={authorNode?.avatar?.url}
+                  alt={authorNode?.name ?? "Author"}
+                  className="rounded-full"
+                />
               </div>
 
               <div>
@@ -319,9 +265,8 @@ export default function ArticlePageClient({
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Share + bookmark */}
             <div className="flex items-center gap-2">
-              {/* Share */}
               <div className="relative" ref={shareRef}>
                 <button
                   onClick={() => setShareOpen((v) => !v)}
@@ -394,7 +339,6 @@ export default function ArticlePageClient({
                 )}
               </div>
 
-              {/* Bookmark */}
               <button
                 onClick={handleBookmark}
                 className="kn-action-btn"
@@ -416,40 +360,38 @@ export default function ArticlePageClient({
       </header>
 
       {/* ── Hero image ────────────────────────────────────────────────────── */}
-      {article.featuredImage?.node.sourceUrl && (
-        <div className="max-w-[1140px] mx-auto px-6 pb-10">
-          <figure>
-            <div className="kn-hero-ratio">
-              <Image
-                src={article.featuredImage.node.sourceUrl}
-                alt={article.featuredImage.node.altText ?? article.title}
-                fill
-                priority
-                className="object-cover"
-              />
-            </div>
-            {article.featuredImage.node.altText && (
-              <figcaption className="kn-figcaption">
-                {article.featuredImage.node.altText}
-              </figcaption>
-            )}
-          </figure>
-        </div>
-      )}
+      {/*
+       * Always render — SkeletonImage shows the branded Kurunzi placeholder
+       * when featuredImage is null, so the layout never collapses.
+       */}
+      <div className="max-w-[1140px] mx-auto px-6 pb-10">
+        <figure>
+          <div className="kn-hero-ratio">
+            <SkeletonImage
+              src={article.featuredImage?.node.sourceUrl}
+              alt={article.featuredImage?.node.altText ?? article.title}
+              priority
+            />
+          </div>
+          {article.featuredImage?.node.altText && (
+            <figcaption className="kn-figcaption">
+              {article.featuredImage.node.altText}
+            </figcaption>
+          )}
+        </figure>
+      </div>
 
       {/* ════════════════════════════════════════════════════════════════════
           BODY + SIDEBAR
       ════════════════════════════════════════════════════════════════════ */}
       <div className="kn-body-grid max-w-[1140px] mx-auto px-6 pb-20">
-        {/* ── Article body ───────────────────────────────────────────────── */}
+        {/* Article body */}
         <main className="min-w-0">
-          {/* WordPress block content rendered as HTML */}
           <div
             className="kn-wp-content"
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
 
-          {/* Category chips used as "topics" */}
           {article.categories?.nodes.length > 0 && (
             <div
               className="mt-14 pt-6"
@@ -483,7 +425,7 @@ export default function ArticlePageClient({
           )}
         </main>
 
-        {/* ── Sidebar ────────────────────────────────────────────────────── */}
+        {/* Sidebar */}
         <aside>
           <div className="sticky top-16 flex flex-col gap-6">
             {/* Latest */}
@@ -562,15 +504,18 @@ export default function ArticlePageClient({
                       slug={post.slug}
                       className="kn-related-item"
                     >
+                      {/*
+                       * Related thumbnail
+                       * The kn-related-thumb div is position:relative with fixed
+                       * dimensions — SkeletonImage fills it via fill + object-cover,
+                       * or shows the branded placeholder if no image is set.
+                       */}
                       <div className="kn-related-thumb">
-                        {post.featuredImage?.node.sourceUrl && (
-                          <Image
-                            src={post.featuredImage.node.sourceUrl}
-                            alt={post.featuredImage.node.altText ?? post.title}
-                            fill
-                            className="object-cover kn-related-img"
-                          />
-                        )}
+                        <SkeletonImage
+                          src={post.featuredImage}
+                          alt={post.title}
+                          className="kn-related-img"
+                        />
                       </div>
                       <div className="flex flex-col gap-1 min-w-0">
                         <h4 className="kn-related-headline">{post.title}</h4>
@@ -623,24 +568,22 @@ export default function ArticlePageClient({
           }}
         >
           <div className="max-w-[720px] mx-auto flex gap-6 items-start">
+            {/*
+             * Author avatar in footer — larger (72px), same SkeletonImage pattern.
+             * The rounded-full on the wrapper clips the placeholder too.
+             */}
             <div
-              className="relative shrink-0 w-[72px] h-[72px] rounded-full overflow-hidden flex items-center justify-center"
+              className="relative shrink-0 w-[72px] h-[72px] rounded-full overflow-hidden"
               style={{
-                background: "var(--rule)",
                 border: "3px solid white",
                 boxShadow: "0 2px 8px rgba(0,0,0,.1)",
               }}
             >
-              {authorNode.avatar?.url ? (
-                <Image
-                  src={authorNode.avatar.url}
-                  alt={authorNode.name}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <User size={28} style={{ color: "var(--ink-faint)" }} />
-              )}
+              <SkeletonImage
+                src={authorNode.avatar?.url}
+                alt={authorNode.name}
+                className="rounded-full"
+              />
             </div>
 
             <div>

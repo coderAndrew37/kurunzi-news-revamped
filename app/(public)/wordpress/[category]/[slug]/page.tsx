@@ -41,19 +41,19 @@ export default async function ArticlePage({
   // 1. Fetch the main article
   const article = await getArticleBySlug(slug);
 
+  // If no article, notFound() stops execution here
   if (!article) notFound();
 
-  // 2. Fetch sidebar data (Latest and Related)
+  // 2. Fetch sidebar data
   const allPosts = await getSportsPosts();
-
   const latestPosts = allPosts.slice(0, 5);
 
-  // Filter for related posts in the same category, excluding current article
   const primaryCatName = article.categories?.nodes[0]?.name;
   const relatedPosts = allPosts
     .filter((p) => p.category === primaryCatName && p.slug !== slug)
     .slice(0, 3);
 
+  // At this point, TS knows 'article' is a WPPostNode (not null)
   return (
     <ArticlePageClient
       article={article}

@@ -2,6 +2,8 @@ import { searchArticles } from "@/lib/wordpress/wp-api";
 import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
 import { Search } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function SearchPage({
   searchParams,
 }: {

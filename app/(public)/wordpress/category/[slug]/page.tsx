@@ -26,7 +26,7 @@ export default async function CategoryArchivePage({
   // 404 if no posts found on initial load
   if (posts.length === 0 && !cursor) notFound();
 
-  const categoryName = posts[0]?.categories?.nodes[0]?.name || categorySlug;
+  const categoryName = posts[0]?.category || categorySlug;
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-16 min-h-screen bg-[#fdfcfb]">
