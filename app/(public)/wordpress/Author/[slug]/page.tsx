@@ -2,6 +2,7 @@ import { getAuthorProfile } from "@/lib/wordpress/wp-api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
+import Image from "next/image";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -26,10 +27,12 @@ export default async function AuthorPage({ params, searchParams }: PageProps) {
       <section className="flex flex-col md:flex-row items-center gap-8 mb-16 border-b-2 border-[#e8e2da] pb-12">
         <div className="relative w-32 h-32 md:w-44 md:h-44 rounded-full overflow-hidden border-4 border-white shadow-lg bg-[#f7f4f0]">
           {author.avatar?.url ? (
-            <img
+            <Image
               src={author.avatar.url}
               alt={author.name}
               className="object-cover w-full h-full"
+              width={176}
+              height={176}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-[#1a5c38] text-white text-4xl font-bold font-['Barlow_Condensed']">
@@ -74,12 +77,13 @@ export default async function AuthorPage({ params, searchParams }: PageProps) {
                   href={`/${category?.slug || "news"}/${post.slug}`}
                   className="relative aspect-[16/9] w-full overflow-hidden bg-[#f7f4f0] mb-4 rounded-sm"
                 >
-                  <img
+                  <Image
                     src={
                       post.featuredImage?.node?.sourceUrl || "/placeholder.jpg"
                     }
                     alt={post.title}
                     className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                    fill
                   />
                   {category && (
                     <span className="absolute top-3 left-3 bg-[#1a5c38] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">

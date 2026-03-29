@@ -1,29 +1,31 @@
 import type { Metadata } from "next";
-import { fetchNavCategories } from "@/lib/sanity/api";
-import Navbar from "../_components/Navbar";
+import { getNavCategories } from "@/lib/wordpress/wp-api";
+import Navbar from "../_components/wordpress/WPNavbar";
 import Footer from "../_components/Footer";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kurunzinews.co.ke"),
+  metadataBase: new URL("https://kurunzinews.co.ke"), // Update if moving to .com or sports subdomain
   title: {
-    template: "%s | Kurunzi News",
-    default: "Kurunzi News | Breaking News, Politics, and Business in Kenya",
+    template: "%s | Kurunzi Sports",
+    default: "Kurunzi Sports | Kenya's Home of Verified Sports News & Analysis",
   },
   description:
-    "Kurunzi News provides the latest verified news, political analysis, and business insights across Kenya and the East African region.",
+    "Kurunzi Sports delivers the latest breaking news, match reports, and deep-dive analysis into Kenyan and East African sports.",
   keywords: [
-    "Kenya News",
-    "Breaking News Kenya",
-    "Kurunzi News",
-    "Politics Kenya",
-    "Business Kenya",
+    "Kenya Sports News",
+    "Football Kenya",
+    "Athletics Kenya",
+    "Rugby Kenya",
+    "Kurunzi Sports",
+    "KPL News",
   ],
-  authors: [{ name: "Kurunzi News Team" }],
+  authors: [{ name: "Kurunzi Sports Editorial Team" }],
   openGraph: {
-    title: "Kurunzi News",
-    description: "Your trusted source for verified news and deep analysis.",
+    title: "Kurunzi Sports",
+    description:
+      "Your trusted source for verified sports coverage and analysis.",
     url: "https://kurunzinews.co.ke",
-    siteName: "Kurunzi News",
+    siteName: "Kurunzi Sports",
     images: [
       {
         url: "/og-image.jpg",
@@ -36,8 +38,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kurunzi News",
-    description: "Verified News from the heart of Kenya.",
+    title: "Kurunzi Sports",
+    description: "Verified Sports News from the heart of Kenya.",
     images: ["/og-image.jpg"],
   },
   alternates: {
@@ -53,14 +55,20 @@ export default async function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const categories = await fetchNavCategories();
+  // Fetching categories from WordPress instead of Sanity
+  const categories = await getNavCategories();
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "NewsMediaOrganization",
-    name: "Kurunzi News",
+    "@type": "SportsOrganization",
+    name: "Kurunzi Sports",
     url: "https://kurunzinews.co.ke",
     logo: "https://kurunzinews.co.ke/logo.png",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Nairobi",
+      addressCountry: "KE",
+    },
   };
 
   return (
@@ -69,14 +77,12 @@ export default async function PublicLayout({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="min-h-screen bg-white">
-        {/* Navbar with sticky positioning */}
-        <div className="sticky top-0 z-50">
-          <Navbar categories={categories} />
-        </div>
+      <div className="min-h-screen bg-[#fdfcfb]">
+        {/* Navbar - logic is now internal to the component */}
+        <Navbar categories={categories} />
 
-        {/* Main content */}
-        <main className="min-h-screen bg-gray-50">{children}</main>
+        {/* Main content - Using the subtle paper-like background for readability */}
+        <main className="min-h-screen bg-[#fdfcfb]">{children}</main>
 
         {/* Footer */}
         <Footer />

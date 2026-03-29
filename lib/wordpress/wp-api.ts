@@ -170,3 +170,162 @@ export async function getCategoryArchive(
     pageInfo: data?.posts?.pageInfo || { hasNextPage: false, endCursor: null },
   };
 }
+
+export async function getAuthorProfile(
+  slug: string,
+  first: number = 10,
+  after: string | null = null,
+) {
+  const data = await fetchAPI(
+    `
+    query GetAuthorProfile($slug: ID!, $first: Int!, $after: String) {
+      user(id: $slug, idType: SLUG) {
+        name
+        description
+        avatar {
+          url
+        }
+        posts(first: $first, after: $after) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          nodes {
+            title
+            slug
+            date
+            excerpt
+            categories {
+              nodes {
+                name
+                slug
+              }
+            }
+            featuredImage {
+              node {
+                sourceUrl
+              }
+            }
+            newsData {
+              theLede
+            }
+          }
+        }
+      }
+    }
+  `,
+    { slug, first, after },
+  );
+
+  return {
+    author: data?.user || null,
+    posts: data?.user?.posts?.nodes || [],
+    pageInfo: data?.user?.posts?.pageInfo || {
+      hasNextPage: false,
+      endCursor: null,
+    },
+  };
+}
+
+export async function getPostsByTag(
+  tagSlug: string,
+  first: number = 10,
+  after: string | null = null,
+) {
+  const data = await fetchAPI(
+    `
+    query GetPostsByTag($tag: String!, $first: Int!, $after: String) {
+      posts(where: { tag: $tag }, first: $first, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          title
+          slug
+          date
+          excerpt
+          categories {
+            nodes {
+              name
+              slug
+            }
+          }
+          featuredImage {
+            node {
+              sourceUrl
+            }
+          }
+          newsData {
+            theLede
+          }
+        }
+      }
+      tag(id: $tag, idType: SLUG) {
+        name
+        count
+      }
+    }
+  `,
+    { tag: tagSlug, first, after },
+  );
+
+  return {
+    posts: data?.posts?.nodes || [],
+    tagInfo: data?.tag || null,
+    pageInfo: data?.posts?.pageInfo || { hasNextPage: false, endCursor: null },
+  };
+}
+
+export async function searchArticles(searchTerm: string) {
+  const data = await fetchAPI(
+    `
+    query SearchPosts($query: String!) {
+      posts(where: { search: $query }, first: 20) {
+        nodes {
+          title
+          slug
+          date
+          excerpt
+          categories {
+            nodes {
+              name
+              slug
+            }
+          }
+          featuredImage {
+            node {
+              sourceUrl
+            }
+          }
+          newsData {
+            theLede
+          }
+        }
+      }
+    }
+  `,
+    { query: searchTerm },
+  );
+
+  return data?.posts?.nodes || [];
+}
+
+export async function getNavCategories() {
+  const data = await fetchAPI(`
+    query GetNavCategories {
+      categories(first: 10, where: { hideEmpty: true, exclude: "1" }) {
+        nodes {
+          name
+          slug
+        }
+      }
+    }
+  `);
+
+  // Transform the WordPress 'name' into the 'title' your Navbar expects
+  return (data?.categories?.nodes || []).map((cat: any) => ({
+    title: cat.name,
+    slug: cat.slug,
+  }));
+}
