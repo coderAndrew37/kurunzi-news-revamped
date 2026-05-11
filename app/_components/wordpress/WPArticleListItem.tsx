@@ -1,9 +1,13 @@
+// components/ArticleListItem.tsx
+// Uses SportsPost from types.ts (the lean card shape from wordpress.ts mapper).
+// Note: SportsPost.featuredImage is already a flat string | null — no .node.sourceUrl needed.
+
 import Link from "next/link";
-import { SearchPost } from "@/types/wordpress";
 import SkeletonImage from "../ui/SkeletonImage";
+import { SportsPost } from "@/lib/wordpress/types";
 
 interface ArticleListItemProps {
-  post: SearchPost;
+  post: SportsPost;
   priority?: boolean;
 }
 
@@ -11,22 +15,24 @@ export default function ArticleListItem({
   post,
   priority = false,
 }: ArticleListItemProps) {
-  // Extracting data from the WordPress GraphQL structure
-  const category = post.categories?.nodes[0];
+  // SportsPost already has category as a flat string from the toSportsPost() mapper
+  const categorySlug = post.category?.toLowerCase().replace(/\s+/g, "-") ?? "news";
 
-  // Use the actual featured image URL if it exists, otherwise pass null to trigger Skeleton
-  const imageUrl = post.featuredImage?.node?.sourceUrl || null;
+  // SportsPost.featuredImage is already a flat string | null
+  const imageUrl = post.featuredImage ?? null;
 
-  // Logic: Prefer 'theLede' from ACF, fallback to WP excerpt, then empty string
+  // theLede from ACF → fallback to WP excerpt (strip HTML tags)
   const excerpt =
-    post.newsData?.theLede || post.excerpt?.replace(/<[^>]+>/g, "") || "";
+    post.newsData?.theLede ||
+    post.excerpt?.replace(/<[^>]+>/g, "") ||
+    "";
 
   return (
     <Link
-      href={`/${category?.slug || "news"}/${post.slug}`}
+      href={`/${categorySlug}/${post.slug}`}
       className="group flex flex-col md:flex-row gap-6 border-b border-[#e8e2da] pb-8 transition-all hover:bg-[#f7f4f0]/50 p-4 -mx-4 rounded-sm"
     >
-      {/* Image container */}
+      {/* Image */}
       <div className="relative w-full md:w-48 h-32 shrink-0 overflow-hidden rounded-sm bg-[#f7f4f0] border border-[#e8e2da]">
         <SkeletonImage
           src={imageUrl}
@@ -35,14 +41,14 @@ export default function ArticleListItem({
           className="transition duration-500 group-hover:scale-110"
         />
 
-        {category && (
+        {post.category && (
           <span className="absolute top-2 left-2 z-10 bg-[#1a5c38] text-white text-[9px] font-bold px-2 py-1 rounded-sm uppercase tracking-widest shadow-sm">
-            {category.name}
+            {post.category}
           </span>
         )}
       </div>
 
-      {/* Text container */}
+      {/* Text */}
       <div className="flex-1">
         <h2 className="kn-headline text-xl text-[#0d0d0d] group-hover:text-[#1a5c38] transition-colors leading-tight mb-2">
           {post.title}

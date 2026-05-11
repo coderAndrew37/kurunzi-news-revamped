@@ -1,155 +1,84 @@
-/**
- * SleekSites WP-Headless Data Layer
- * Handles fetching, type-casting, and Fine-Grained ISR for Kurunzi Sports.
- * * Performance Muscle:
- * - Default revalidate: 60s (Sprints)
- * - Navigation revalidate: 3600s (Marathon)
- */
-
-// ─── Types & Interfaces ───────────────────────────────────────────────────────
-
-export interface NewsMetadata {
-  isHero: boolean;
-  isBreaking: boolean;
-  theLede: string;
-}
-
-export interface SportsPost {
-  title: string;
-  slug: string;
-  date: string;
-  featuredImage: string | null;
-  newsData: NewsMetadata;
-  category: string;
-}
-
-export interface NavCategory {
-  title: string;
-  slug: string;
-}
-
-export interface PageInfo {
-  hasNextPage: boolean;
-  endCursor: string | null;
-}
-
-// Internal WPGraphQL Response Shapes
-interface WPImage {
-  node: {
-    sourceUrl: string;
-    altText?: string;
-    caption?: string; // The descriptive caption
-    photoSource?: string;
-  };
-}
-
-interface WPCategory {
-  name: string;
-  slug: string;
-}
-
-export interface WPPostNode {
-  title: string;
-  slug: string;
-  date: string;
-  content: string; // Changed from optional to required
-  excerpt: string; // Changed from optional to required
-  categories: { nodes: WPCategory[] };
-  featuredImage: WPImage | null;
-  newsData: NewsMetadata;
-  // Add author node
-  author: {
-    node: {
-      name: string;
-      slug: string;
-      avatar?: { url: string };
-      description?: string;
-    };
-  };
-}
-
-interface SitemapPostNode {
-  slug: string;
-  date: string;
-  categories: {
-    nodes: Array<{ slug: string }>;
-  };
-}
+// lib/api.ts
+// Core fetcher + all GraphQL query strings.
+// Import fetchAPI and QUERIES into wordpress.ts only — not into pages directly.
 
 // ─── Core Fetcher ─────────────────────────────────────────────────────────────
 
-/**
- * Generic Fetcher for WPGraphQL
- * @template T The expected shape of the 'data' property in the response
- */
-async function fetchAPI<T>(
+export async function fetchAPI<T>(
   query: string,
   variables: Record<string, unknown> = {},
   revalidate: number = 60,
-  tags: string[] = ["wordpress-data"],
+  tags: string[] = ['wordpress-data'],
 ): Promise<T> {
-  const res = await fetch(process.env.WORDPRESS_API_URL!, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables }),
-    next: {
-      revalidate: revalidate,
-      tags: tags,
-    },
-  });
+  const url = process.env.WORDPRESS_API_URL
 
-  const json = await res.json();
-
-  if (json.errors) {
-    console.error("[WP-API Error]:", json.errors);
-    throw new Error("Failed to fetch API from WordPress");
+  if (!url) {
+    throw new Error('WORDPRESS_API_URL is not set in environment variables')
   }
 
-  return json.data as T;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables }),
+    next: { revalidate, tags },
+  })
+
+  if (!res.ok) {
+    throw new Error(`WordPress API responded with ${res.status}: ${res.statusText}`)
+  }
+
+  const json = await res.json()
+
+  if (json.errors) {
+    console.error('[WP-API Error]:', JSON.stringify(json.errors, null, 2))
+    throw new Error(json.errors[0]?.message ?? 'Failed to fetch from WordPress')
+  }
+
+  return json.data as T
 }
 
-// ─── Queries ──────────────────────────────────────────────────────────────────
+// ─── Query Strings ────────────────────────────────────────────────────────────
+// Rules:
+// - newsData, matchData, etc. always live under articleFields { }
+// - featuredImage always includes caption and mediaDetails for next/image
+// - seo block requires WPGraphQL for RankMath plugin
 
-export async function getSportsPosts(): Promise<SportsPost[]> {
-  const data = await fetchAPI<{ posts: { nodes: WPPostNode[] } }>(
-    `
+export const QUERIES = {
+
+  // ── Homepage / feed ─────────────────────────────────────────────────────────
+  GET_SPORTS_POSTS: `
     query GetSportsData {
       posts(first: 100, where: { orderby: { field: DATE, order: DESC } }) {
         nodes {
           title
           slug
-          categories { nodes { name } }
           date
-          featuredImage { node { sourceUrl } }
-          newsData { isHero isBreaking theLede }
+          excerpt
+          categories { nodes { name slug } }
+          featuredImage {
+            node {
+              sourceUrl
+              altText
+              caption
+              mediaDetails { width height }
+            }
+          }
+          articleFields {
+            newsData { isHero isBreaking theLede }
+            articleCategoryType
+            isHeroSlider
+          }
         }
       }
     }
   `,
-    {},
-    60,
-    ["posts", "collection"],
-  );
 
-  return (data.posts?.nodes || []).map((post) => ({
-    title: post.title,
-    slug: post.slug,
-    category: post.categories.nodes[0]?.name || "General",
-    date: post.date,
-    featuredImage: post.featuredImage?.node.sourceUrl || null,
-    newsData: {
-      isHero: post.newsData?.isHero ?? false,
-      isBreaking: post.newsData?.isBreaking ?? false,
-      theLede: post.newsData?.theLede ?? "No summary available for this story.",
-    },
-  }));
-}
-
-export async function getArticleBySlug(
-  slug: string,
-): Promise<WPPostNode | null> {
-  const data = await fetchAPI<{ post: WPPostNode | null }>(
-    `
+  // ── Single article ───────────────────────────────────────────────────────────
+  // caption on featuredImage = photo credit line shown below hero image.
+  // content contains the full post body HTML including any inline <img> blocks
+  // added via Gutenberg image blocks — these are handled on the frontend
+  // by the RichText / content renderer component.
+  GET_ARTICLE_BY_SLUG: `
     query GetArticleBySlug($slug: ID!) {
       post(id: $slug, idType: SLUG) {
         title
@@ -158,8 +87,36 @@ export async function getArticleBySlug(
         excerpt
         slug
         categories { nodes { name slug } }
-        featuredImage { node { sourceUrl altText caption photoSource } }
-        newsData { isHero isBreaking theLede }
+        tags { nodes { name slug } }
+        featuredImage {
+          node {
+            sourceUrl
+            altText
+            caption
+            mediaDetails { width height }
+          }
+        }
+        articleFields {
+          newsData { isHero isBreaking theLede }
+          matchData {
+            homeTeam
+            awayTeam
+            finalScore
+            competition
+            matchDatetime
+            venue
+            matchStatus
+          }
+          articleCategoryType
+          readingTime
+          featuredVideo
+          isHeroSlider
+          relatedArticles {
+            nodes {
+              ... on Post { title slug }
+            }
+          }
+        }
         author {
           node {
             name
@@ -168,82 +125,64 @@ export async function getArticleBySlug(
             avatar { url }
           }
         }
+        seo {
+          title
+          description
+          canonicalUrl
+          openGraph {
+            title
+            description
+            image { url }
+          }
+        }
       }
     }
   `,
-    { slug },
-    60,
-    [`post-${slug}`],
-  );
 
-  return data.post;
-}
-export async function getCategoryArchive(
-  categorySlug: string,
-  first: number = 10,
-  after: string | null = null,
-): Promise<{ posts: SportsPost[]; pageInfo: PageInfo }> {
-  const data = await fetchAPI<{
-    posts: { nodes: WPPostNode[]; pageInfo: PageInfo };
-  }>(
-    `
+  // ── Category archive with pagination ────────────────────────────────────────
+  GET_CATEGORY_ARCHIVE: `
     query GetCategoryArchive($category: String!, $first: Int!, $after: String) {
-      posts(where: { categoryName: $category }, first: $first, after: $after) {
+      posts(
+        where: { categoryName: $category, orderby: { field: DATE, order: DESC } }
+        first: $first
+        after: $after
+      ) {
         pageInfo { hasNextPage endCursor }
         nodes {
           title
           slug
           date
           excerpt
-          categories { nodes { name } }
-          featuredImage { node { sourceUrl } }
-          newsData { theLede }
+          categories { nodes { name slug } }
+          featuredImage {
+            node {
+              sourceUrl
+              altText
+              caption
+              mediaDetails { width height }
+            }
+          }
+          articleFields {
+            newsData { theLede isHero isBreaking }
+            articleCategoryType
+          }
         }
       }
     }
   `,
-    { category: categorySlug, first, after },
-    60,
-    [`category-${categorySlug}`],
-  );
 
-  return {
-    posts: (data.posts?.nodes || []).map((post) => ({
-      title: post.title,
-      slug: post.slug,
-      date: post.date,
-      featuredImage: post.featuredImage?.node.sourceUrl || null,
-      category: post.categories.nodes[0]?.name || "General",
-      newsData: {
-        isHero: post.newsData?.isHero ?? false,
-        isBreaking: post.newsData?.isBreaking ?? false,
-        theLede: post.newsData?.theLede ?? "No summary available.",
-      },
-    })),
-    pageInfo: data.posts?.pageInfo || { hasNextPage: false, endCursor: null },
-  };
-}
-
-export async function getAuthorProfile(
-  slug: string,
-  first: number = 10,
-  after: string | null = null,
-): Promise<{ author: any; posts: SportsPost[]; pageInfo: PageInfo }> {
-  const data = await fetchAPI<{
-    user: {
-      name: string;
-      description: string;
-      avatar: { url: string };
-      posts: { nodes: WPPostNode[]; pageInfo: PageInfo };
-    };
-  }>(
-    `
+  // ── Author profile + their posts ─────────────────────────────────────────────
+  GET_AUTHOR_PROFILE: `
     query GetAuthorProfile($slug: ID!, $first: Int!, $after: String) {
       user(id: $slug, idType: SLUG) {
         name
         description
         avatar { url }
-        posts(first: $first, after: $after) {
+        posts(
+          first: $first
+          after: $after
+          where: { orderby: { field: DATE, order: DESC } }
+        ) {
           pageInfo { hasNextPage endCursor }
           nodes {
             title
@@ -251,64 +190,32 @@ export async function getAuthorProfile(
             date
             excerpt
             categories { nodes { name slug } }
-            featuredImage { node { sourceUrl } }
-            newsData { theLede }
+            featuredImage {
+              node {
+                sourceUrl
+                altText
+                caption
+                mediaDetails { width height }
+              }
+            }
+            articleFields { newsData { theLede isHero isBreaking } }
           }
         }
       }
     }
   `,
-    { slug, first, after },
-    300,
-    [`author-${slug}`],
-  );
 
-  return {
-    author: data.user || null,
-    posts: (data.user?.posts?.nodes || []).map((post) => ({
-      title: post.title,
-      slug: post.slug,
-      date: post.date,
-      featuredImage: post.featuredImage?.node.sourceUrl || null,
-      category: post.categories.nodes[0]?.name || "General",
-      newsData: {
-        isHero: post.newsData?.isHero ?? false,
-        isBreaking: post.newsData?.isBreaking ?? false,
-        theLede: post.newsData?.theLede ?? "No summary available.",
-      },
-    })),
-    pageInfo: data.user?.posts?.pageInfo || {
-      hasNextPage: false,
-      endCursor: null,
-    },
-  };
-}
-
-export async function getNavCategories(): Promise<NavCategory[]> {
-  const data = await fetchAPI<{ categories: { nodes: WPCategory[] } }>(
-    `
+  // ── Nav categories (1h cache, rarely changes) ────────────────────────────────
+  GET_NAV_CATEGORIES: `
     query GetNavCategories {
       categories(first: 10, where: { hideEmpty: true, exclude: "1" }) {
         nodes { name slug }
       }
     }
   `,
-    {},
-    3600,
-    ["navigation"],
-  );
 
-  return (data.categories?.nodes || []).map((cat) => ({
-    title: cat.name,
-    slug: cat.slug,
-  }));
-}
-
-export async function searchArticles(
-  searchTerm: string,
-): Promise<SportsPost[]> {
-  const data = await fetchAPI<{ posts: { nodes: WPPostNode[] } }>(
-    `
+  // ── Search (short 10s cache) ─────────────────────────────────────────────────
+  SEARCH_ARTICLES: `
     query SearchPosts($query: String!) {
       posts(where: { search: $query }, first: 20) {
         nodes {
@@ -317,41 +224,22 @@ export async function searchArticles(
           date
           excerpt
           categories { nodes { name slug } }
-          featuredImage { node { sourceUrl } }
-          newsData { theLede }
+          featuredImage {
+            node {
+              sourceUrl
+              altText
+              caption
+              mediaDetails { width height }
+            }
+          }
+          articleFields { newsData { theLede } }
         }
       }
     }
   `,
-    { query: searchTerm },
-    10,
-    ["search"],
-  );
 
-  return (data.posts?.nodes || []).map((post) => ({
-    title: post.title,
-    slug: post.slug,
-    date: post.date,
-    category: post.categories.nodes[0]?.name || "General",
-    featuredImage: post.featuredImage?.node.sourceUrl || null,
-    newsData: {
-      isHero: post.newsData?.isHero ?? false,
-      isBreaking: post.newsData?.isBreaking ?? false,
-      theLede: post.newsData?.theLede ?? "No summary available.",
-    },
-  }));
-}
-
-export async function getPostsByTag(
-  tagSlug: string,
-  first: number = 10,
-  after: string | null = null,
-): Promise<{ tagInfo: any; posts: SportsPost[]; pageInfo: PageInfo }> {
-  const data = await fetchAPI<{
-    tag: any;
-    posts: { nodes: WPPostNode[]; pageInfo: PageInfo };
-  }>(
-    `
+  // ── Tag archive with pagination ──────────────────────────────────────────────
+  GET_POSTS_BY_TAG: `
     query GetPostsByTag($tag: [String], $first: Int!, $after: String) {
       tag(id: $tag, idType: SLUG) { name count slug }
       posts(where: { tagIn: $tag }, first: $first, after: $after) {
@@ -362,40 +250,22 @@ export async function getPostsByTag(
           date
           excerpt
           categories { nodes { name slug } }
-          featuredImage { node { sourceUrl } }
-          newsData { theLede }
+          featuredImage {
+            node {
+              sourceUrl
+              altText
+              caption
+              mediaDetails { width height }
+            }
+          }
+          articleFields { newsData { theLede } }
         }
       }
     }
   `,
-    { tag: [tagSlug], first, after },
-    60,
-    [`tag-${tagSlug}`],
-  );
 
-  return {
-    tagInfo: data.tag || null,
-    posts: (data.posts?.nodes || []).map((post) => ({
-      title: post.title,
-      slug: post.slug,
-      date: post.date,
-      category: post.categories.nodes[0]?.name || "General",
-      featuredImage: post.featuredImage?.node.sourceUrl || null,
-      newsData: {
-        isHero: post.newsData?.isHero ?? false,
-        isBreaking: post.newsData?.isBreaking ?? false,
-        theLede: post.newsData?.theLede ?? "No summary available.",
-      },
-    })),
-    pageInfo: data.posts?.pageInfo || { hasNextPage: false, endCursor: null },
-  };
-}
-
-export async function getAllPostSlugs(): Promise<
-  { slug: string; date: string; category: string }[]
-> {
-  const data = await fetchAPI<{ posts: { nodes: SitemapPostNode[] } }>(
-    `
+  // ── All slugs for generateStaticParams + sitemap (24h cache) ────────────────
+  GET_ALL_SLUGS: `
     query GetAllPostSlugs {
       posts(first: 10000, where: { status: PUBLISH }) {
         nodes {
@@ -406,14 +276,4 @@ export async function getAllPostSlugs(): Promise<
       }
     }
   `,
-    {},
-    86400,
-    ["sitemap-data"],
-  );
-
-  return (data.posts?.nodes || []).map((post) => ({
-    slug: post.slug,
-    date: post.date,
-    category: post.categories?.nodes[0]?.slug || "news",
-  }));
 }

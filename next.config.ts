@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "http",
-        hostname: "kurunzi-sports-backend.local",
+        hostname: "kurunzi-sports.local",
         port: "",
         pathname: "/wp-content/uploads/**",
       },

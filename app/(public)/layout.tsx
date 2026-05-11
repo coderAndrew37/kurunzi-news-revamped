@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { getNavCategories } from "@/lib/wordpress/wp-api";
 import Navbar from "../_components/wordpress/WPNavbar";
 import Footer from "../_components/wordpress/WPFooter";
+import { getNavCategories } from "@/lib/wordpress/data";
+
+const siteURL = process.env.NEXT_PUBLIC_SITE_URL!;
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kurunzinews.co.ke"), // Update if moving to .com or sports subdomain
+  metadataBase: new URL(siteURL), // Update if moving to .com or sports subdomain
   title: {
     template: "%s | Kurunzi Sports",
     default: "Kurunzi Sports | Kenya's Home of Verified Sports News & Analysis",
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
     title: "Kurunzi Sports",
     description:
       "Your trusted source for verified sports coverage and analysis.",
-    url: "https://kurunzinews.co.ke",
+    url: siteURL,
     siteName: "Kurunzi Sports",
     images: [
       {
@@ -43,9 +45,9 @@ export const metadata: Metadata = {
     images: ["/og-image.jpg"],
   },
   alternates: {
-    canonical: "https://kurunzinews.co.ke",
+    canonical: siteURL,
     types: {
-      "application/rss+xml": "https://kurunzinews.co.ke/feed.xml",
+      "application/rss+xml": `${siteURL}/feed.xml`,
     },
   },
 };
@@ -62,8 +64,8 @@ export default async function PublicLayout({
     "@context": "https://schema.org",
     "@type": "SportsOrganization",
     name: "Kurunzi Sports",
-    url: "https://kurunzinews.co.ke",
-    logo: "https://kurunzinews.co.ke/logo.png",
+    url: siteURL,
+    logo: `${siteURL}/logo.png`,
     address: {
       "@type": "PostalAddress",
       addressLocality: "Nairobi",

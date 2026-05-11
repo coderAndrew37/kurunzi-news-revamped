@@ -1,5 +1,5 @@
-import { searchArticles } from "@/lib/wordpress/wp-api";
 import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
+import { searchArticles } from "@/lib/wordpress/data";
 import { Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export default async function SearchPage({
 
         <h1 className="kn-headline text-3xl md:text-5xl uppercase tracking-tighter">
           Results for:{" "}
-          <span className="text-[#1a5c38]">"{query || "..."}"</span>
+          <span className="text-[#1a5c38]">&quot;{query || "..."}&quot;</span>
         </h1>
 
         <p className="font-['Source_Serif_4'] text-[#7a736c] italic mt-2">

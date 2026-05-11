@@ -1,11 +1,8 @@
-import {
-  getArticleBySlug,
-  getSportsPosts,
-  getAllPostSlugs,
-} from "@/lib/wordpress/wp-api";
+
 import { notFound } from "next/navigation";
 import ArticlePageClient from "./WPArticlePageClient";
 import Script from "next/script";
+import { getAllPostSlugs, getArticleBySlug, getSportsPosts } from "@/lib/wordpress/data";
 
 interface PageParams {
   category: string;
@@ -34,7 +31,7 @@ export async function generateMetadata({
   if (!article) return { title: "Article Not Found | Kurunzi Sports" };
 
   const cleanDescription =
-    article.newsData?.theLede || article.excerpt?.replace(/<[^>]+>/g, "");
+    article.excerpt?.replace(/<[^>]+>/g, "") || article.title;
 
   return {
     title: `${article.title} | Kurunzi Sports`,

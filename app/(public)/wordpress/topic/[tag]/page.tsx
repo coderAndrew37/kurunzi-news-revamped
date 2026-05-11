@@ -1,8 +1,8 @@
-import { getPostsByTag } from "@/lib/wordpress/wp-api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Hash } from "lucide-react";
 import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
+import { getPostsByTag } from "@/lib/wordpress/data";
 
 interface TagPageProps {
   params: Promise<{ tag: string }>;

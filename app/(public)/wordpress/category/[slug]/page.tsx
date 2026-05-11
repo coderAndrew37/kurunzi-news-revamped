@@ -1,8 +1,8 @@
-import { getCategoryArchive } from "@/lib/wordpress/wp-api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
+import { getCategoryArchive } from "@/lib/wordpress/data";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

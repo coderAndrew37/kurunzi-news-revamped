@@ -1,22 +1,24 @@
+// components/Footer.tsx
+// getNavCategories ← lib/wordpress.ts (no other changes needed)
+
+import { getNavCategories } from "@/lib/wordpress/data";
 import Link from "next/link";
-import { getNavCategories } from "@/lib/wordpress/wp-api";
 
 export default async function Footer() {
   const currentYear = new Date().getFullYear();
-
-  // Fetch categories dynamically from WordPress
   const categories = await getNavCategories();
 
   return (
     <footer className="bg-[#0a0a0a] text-white pt-20 pb-10 border-t-4 border-[#1a5c38]">
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
+
         {/* Column 1: Brand */}
         <div className="space-y-6">
           <h2 className="text-3xl font-black tracking-tighter italic">
             KURUNZI<span className="text-red-600">SPORTS</span>
           </h2>
           <p className="text-sm text-gray-400 leading-relaxed font-['Source_Serif_4']">
-            Kenya's premier digital sports archive. Delivering deep-dive
+            Kenya&apos;s premier digital sports archive. Delivering deep-dive
             analysis, breaking news, and historical records from the pitch to
             the track.
           </p>
@@ -30,7 +32,7 @@ export default async function Footer() {
           </div>
         </div>
 
-        {/* Column 2: Dynamic Sections */}
+        {/* Column 2: Dynamic Sections from WordPress */}
         <div>
           <h4 className="font-bold border-l-4 border-red-600 pl-3 mb-6 uppercase tracking-widest text-xs">
             Sections
@@ -40,7 +42,7 @@ export default async function Footer() {
               categories.map((cat) => (
                 <li key={cat.slug}>
                   <Link
-                    href={`/category/${cat.slug}`}
+                    href={`/${cat.slug}`}
                     className="hover:text-[#1a5c38] transition"
                   >
                     {cat.title}
@@ -50,20 +52,10 @@ export default async function Footer() {
             ) : (
               <>
                 <li>
-                  <Link
-                    href="/category/football"
-                    className="hover:text-[#1a5c38]"
-                  >
-                    Football
-                  </Link>
+                  <Link href="/football" className="hover:text-[#1a5c38]">Football</Link>
                 </li>
                 <li>
-                  <Link
-                    href="/category/athletics"
-                    className="hover:text-[#1a5c38]"
-                  >
-                    Athletics
-                  </Link>
+                  <Link href="/athletics" className="hover:text-[#1a5c38]">Athletics</Link>
                 </li>
               </>
             )}
@@ -76,26 +68,10 @@ export default async function Footer() {
             Company
           </h4>
           <ul className="grid grid-cols-1 gap-4 text-xs font-bold uppercase tracking-wider text-gray-400">
-            <li>
-              <Link href="/about" className="hover:text-white transition">
-                About the Archive
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="hover:text-white transition">
-                Editorial Team
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms" className="hover:text-white transition">
-                Terms of Service
-              </Link>
-            </li>
-            <li>
-              <Link href="/privacy" className="hover:text-white transition">
-                Privacy Policy
-              </Link>
-            </li>
+            <li><Link href="/about" className="hover:text-white transition">About the Archive</Link></li>
+            <li><Link href="/contact" className="hover:text-white transition">Editorial Team</Link></li>
+            <li><Link href="/terms" className="hover:text-white transition">Terms of Service</Link></li>
+            <li><Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
           </ul>
         </div>
 
@@ -127,13 +103,10 @@ export default async function Footer() {
           <span className="hidden md:inline text-gray-800">|</span>
           <span>NAIROBI, KENYA</span>
         </div>
-
-        <div className="flex items-center gap-1 group">
+        <div className="flex items-center gap-1">
           <span>CRAFTED BY</span>
           <Link
-            href={
-              process.env.NEXT_PUBLIC_AGENCY_URL || "https://sleeksites.co.ke"
-            }
+            href={process.env.NEXT_PUBLIC_AGENCY_URL || "https://sleeksites.co.ke"}
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-400 hover:text-[#1a5c38] transition-colors"

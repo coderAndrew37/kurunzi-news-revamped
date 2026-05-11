@@ -1,7 +1,8 @@
 import HeroSection from "@/app/_components/wordpress/WPHeroSection";
-import { SportsPost, getSportsPosts } from "@/lib/wordpress/wp-api";
 import BreakingNewsTicker from "../../_components/wordpress/WPBreakingNewsTicker";
 import NewsSection from "../../_components/wordpress/WPNewsSection";
+import { getSportsPosts } from "@/lib/wordpress/data";
+import { SportsPost } from "@/lib/wordpress/types";
 
 export default async function HomePage() {
   const allPosts: SportsPost[] = await getSportsPosts();

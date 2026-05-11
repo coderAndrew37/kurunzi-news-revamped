@@ -1,5 +1,5 @@
 import NewsSection from "@/app/_components/wordpress/WPNewsSection";
-import { getSportsPosts } from "@/lib/wordpress/wp-api";
+import { getSportsPosts } from "@/lib/wordpress/data";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 

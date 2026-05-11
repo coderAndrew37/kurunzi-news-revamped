@@ -1,9 +1,9 @@
-import { getAuthorProfile } from "@/lib/wordpress/wp-api";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
+import { getAuthorProfile } from "@/lib/wordpress/data";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

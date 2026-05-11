@@ -1,8 +1,13 @@
+// components/HeroSection.tsx
+// SportsPost is imported from lib/types (not wp-api).
+// featuredImage is already a flat string | null from the toSportsPost() mapper —
+// pass it directly to SkeletonImage, no .node.sourceUrl unwrapping needed.
+
 import { Calendar, ArrowRight } from "lucide-react";
-import { SportsPost } from "@/lib/wordpress/wp-api";
 import Link from "next/link";
 import SkeletonImage from "../ui/SkeletonImage";
 import ArticleLink from "./WPArticleLink";
+import { SportsPost } from "@/lib/wordpress/types";
 
 interface HeroSectionProps {
   hero: SportsPost;
@@ -27,22 +32,23 @@ export default function HeroSection({
     .filter((p) => p.slug !== hero.slug)
     .slice(0, 5);
 
+  // category slug for URL: lowercase, spaces → hyphens
+  const categorySlug = hero.category?.toLowerCase().replace(/\s+/g, "-") ?? "news";
+
   return (
     <section
       className="py-12 lg:py-16 border-b"
       style={{ background: "var(--paper)", borderColor: "var(--rule)" }}
     >
       <div className="max-w-[1140px] mx-auto px-6">
-        {/* ── Section header ─────────────────────────────────────────────── */}
+
+        {/* Section header */}
         <div
           className="flex items-center justify-between mb-10 pb-4"
           style={{ borderBottom: "2px solid var(--ink)" }}
         >
           <div className="flex items-center gap-4">
-            <div
-              className="w-1.5 h-8"
-              style={{ background: "var(--accent)" }}
-            />
+            <div className="w-1.5 h-8" style={{ background: "var(--accent)" }} />
             <h2
               style={{
                 fontFamily: "var(--font-display)",
@@ -57,7 +63,7 @@ export default function HeroSection({
           </div>
 
           <Link
-            href={`/${hero.category?.toLowerCase()}`}
+            href={`/${categorySlug}`}
             className="hidden lg:flex items-center gap-2 group"
             style={{
               fontFamily: "var(--font-ui)",
@@ -77,18 +83,16 @@ export default function HeroSection({
           </Link>
         </div>
 
-        {/* ── Main grid ──────────────────────────────────────────────────── */}
+        {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+
           {/* Hero story — 8 cols */}
           <div className="lg:col-span-8">
             <ArticleLink
-              categorySlug={hero.category}
+              categorySlug={categorySlug}
               slug={hero.slug}
               className="group block"
             >
-              {/* Image
-                  SportsPost.featuredImage is already a flat string | null
-                  from the getSportsPosts() mapper in wp-api.ts — pass it directly */}
               <div
                 className="relative w-full overflow-hidden mb-6"
                 style={{
@@ -97,6 +101,7 @@ export default function HeroSection({
                   borderRadius: 4,
                 }}
               >
+                {/* hero.featuredImage is already a string | null */}
                 <SkeletonImage
                   src={hero.featuredImage}
                   alt={hero.title}
@@ -212,36 +217,40 @@ export default function HeroSection({
               </div>
 
               <div>
-                {sidebarPosts.map((post, i) => (
-                  <ArticleLink
-                    key={post.slug}
-                    categorySlug={post.category}
-                    slug={post.slug}
-                    className="kn-latest-item"
-                  >
-                    <span className="kn-latest-num">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <div className="min-w-0">
-                      <span className="kn-latest-cat">{post.category}</span>
-                      <h4 className="kn-latest-headline">{post.title}</h4>
-                      <span
-                        className="block mt-1"
-                        style={{
-                          fontFamily: "var(--font-ui)",
-                          fontSize: 10,
-                          color: "var(--ink-faint)",
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        {new Date(post.date).toLocaleDateString("en-KE", {
-                          month: "short",
-                          day: "numeric",
-                        })}
+                {sidebarPosts.map((post, i) => {
+                  const postCategorySlug =
+                    post.category?.toLowerCase().replace(/\s+/g, "-") ?? "news";
+                  return (
+                    <ArticleLink
+                      key={post.slug}
+                      categorySlug={postCategorySlug}
+                      slug={post.slug}
+                      className="kn-latest-item"
+                    >
+                      <span className="kn-latest-num">
+                        {String(i + 1).padStart(2, "0")}
                       </span>
-                    </div>
-                  </ArticleLink>
-                ))}
+                      <div className="min-w-0">
+                        <span className="kn-latest-cat">{post.category}</span>
+                        <h4 className="kn-latest-headline">{post.title}</h4>
+                        <span
+                          className="block mt-1"
+                          style={{
+                            fontFamily: "var(--font-ui)",
+                            fontSize: 10,
+                            color: "var(--ink-faint)",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          {new Date(post.date).toLocaleDateString("en-KE", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </ArticleLink>
+                  );
+                })}
               </div>
 
               <div
@@ -249,7 +258,7 @@ export default function HeroSection({
                 style={{ borderTop: "1px solid var(--rule)" }}
               >
                 <Link
-                  href={`/${hero.category?.toLowerCase()}`}
+                  href={`/${categorySlug}`}
                   className="kn-newsletter-btn"
                   style={{ background: "var(--ink)" }}
                 >
@@ -266,7 +275,7 @@ export default function HeroSection({
           style={{ borderTop: "1px solid var(--rule)" }}
         >
           <Link
-            href={`/${hero.category?.toLowerCase()}`}
+            href={`/${categorySlug}`}
             className="flex items-center justify-center gap-2 group"
             style={{
               fontFamily: "var(--font-ui)",
