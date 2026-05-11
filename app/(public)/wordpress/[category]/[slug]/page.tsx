@@ -3,11 +3,14 @@ import { notFound } from "next/navigation";
 import ArticlePageClient from "./WPArticlePageClient";
 import Script from "next/script";
 import { getAllPostSlugs, getArticleBySlug, getSportsPosts } from "@/lib/wordpress/data";
+import { siteUrl } from "@/next-sitemap.config";
 
 interface PageParams {
   category: string;
   slug: string;
 }
+
+
 
 // ─── STATIC GENERATION ──────────────────────────────────────────────────────
 // Pre-builds the paths for the sitemap/recent posts for instant loading
@@ -81,7 +84,7 @@ export default async function ArticlePage({
       {
         "@type": "Person",
         name: article.author?.node?.name,
-        url: `https://kurunzisports.com/author/${article.author?.node?.slug}`,
+        url: `${siteUrl}}/author/${article.author?.node?.slug}`,
       },
     ],
   };

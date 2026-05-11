@@ -134,45 +134,63 @@ export default function NewsSection({ title, slug, posts }: NewsSectionProps) {
             </div>
           </div>
 
-          {/* 3. Sidebar List */}
-          <aside className="lg:col-span-4">
-            <div className="lg:sticky lg:top-24 space-y-6">
-              <div className="pb-4 border-b-2 border-red-600 w-fit">
-                <h4 className="text-lg font-bold text-gray-900">More in {title}</h4>
-              </div>
+         {/* 3. Sidebar List */}
+<aside className="lg:col-span-4">
+  <div className="lg:sticky lg:top-24 space-y-6">
+    <div className="pb-4 border-b-2 border-red-600 w-fit">
+      <h4 className="text-lg font-bold text-gray-900">More in {title}</h4>
+    </div>
 
-              <div className="space-y-6">
-                {sidebarPosts.map((post, index) => (
-                  <ArticleLink
-                    key={post.slug}
-                    categorySlug={post.category?.toLowerCase().replace(/\s+/g, "-") ?? slug}
-                    slug={post.slug}
-                    className="group flex gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0"
-                  >
-                    <div className="shrink-0">
-                      <div className="w-8 h-8 flex items-center justify-center bg-gray-100 group-hover:bg-red-600 rounded-full transition-all">
-                        <span className="text-sm font-bold text-gray-600 group-hover:text-white">
-                          {index + 1}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-bold text-gray-900 group-hover:text-red-600 transition-colors line-clamp-3 text-sm leading-snug">
-                        {post.title}
-                      </h5>
-                    </div>
-                  </ArticleLink>
-                ))}
-              </div>
+    <div className="space-y-6">
+      {sidebarPosts.map((post, index) => (
+        <ArticleLink
+          key={post.slug}
+          categorySlug={post.category?.toLowerCase().replace(/\s+/g, "-") ?? slug}
+          slug={post.slug}
+          className="group flex gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0"
+        >
+          {/* Image */}
+          <div className="shrink-0 w-20 h-20 relative rounded-md overflow-hidden bg-gray-100">
+            <SkeletonImage
+              src={post.featuredImage}
+              alt={post.title}
+              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+            />
+          </div>
 
-              <Link
-                href={`/${slug}`}
-                className="block w-full text-center px-6 py-4 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs hover:bg-red-600 transition-colors rounded-md"
-              >
-                View All {title}
-              </Link>
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-red-600 text-white rounded-full">
+                {index + 1}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">
+                {title}
+              </span>
             </div>
-          </aside>
+
+            <h5 className="font-bold text-gray-900 group-hover:text-red-600 transition-colors leading-tight text-[15px] line-clamp-3">
+              {post.title}
+            </h5>
+
+            {post.newsData?.theLede && (
+              <p className="text-gray-600 text-sm line-clamp-2 mt-2 hidden md:block">
+                {post.newsData.theLede}
+              </p>
+            )}
+          </div>
+        </ArticleLink>
+      ))}
+    </div>
+
+    <Link
+      href={`/${slug}`}
+      className="block w-full text-center px-6 py-4 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs hover:bg-red-600 transition-colors rounded-md"
+    >
+      View All {title}
+    </Link>
+  </div>
+</aside>
         </div>
       </div>
     </section>

@@ -43,7 +43,9 @@ export interface WPImageNode {
   mediaDetails: {
     width: number;
     height: number;
+    photoSource?: string; // Custom ACF field for photo source/credit, if you choose to use it
   } | null;
+ 
 }
 
 export interface WPImage {
@@ -103,7 +105,9 @@ export interface WPPostNode {
   articleFields: ArticleFields;
   author: WPAuthor;
   seo: WPSeo | null;
-}
+  isBreaking: boolean;
+  id: string;
+  }
 
 // ─── Sitemap-only slim shape ──────────────────────────────────────────────────
 
@@ -134,4 +138,39 @@ export interface NavCategory {
 export interface PageInfo {
   hasNextPage: boolean;
   endCursor: string | null;
+}
+
+export interface ArticleDetail {
+  id: string;
+  title: string;
+  slug: string;
+  date: string;
+  content: string;
+  excerpt: string;
+
+  // Taxonomy
+  categories: { nodes: WPCategory[] };
+  tags?: { nodes: WPTag[] } | null;
+
+  // Featured Image
+  featuredImage: WPImage | null;
+
+  // ACF Fields
+  articleFields: ArticleFields;
+
+  // Author
+  author: WPAuthor;
+
+  // SEO
+  seo?: {
+    title?: string;
+    description?: string;
+    canonicalUrl?: string;
+    openGraph?: {
+      title?: string;
+      description?: string;
+      image?: { url: string } | null;
+    };
+  } | null;
+  isBreaking: boolean;
 }

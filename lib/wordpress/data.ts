@@ -54,6 +54,10 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
  * articleFields, matchData, author, SEO, and featured image caption.
  * Returns null if the post doesn't exist (triggers 404 in the page).
  */
+/**
+ * Full article by slug — returns the complete WPPostNode including
+ * articleFields, matchData, author, SEO, and featured image caption.
+ */
 export async function getArticleBySlug(slug: string): Promise<WPPostNode | null> {
   const data = await fetchAPI<{ post: WPPostNode | null }>(
     QUERIES.GET_ARTICLE_BY_SLUG,
@@ -64,16 +68,18 @@ export async function getArticleBySlug(slug: string): Promise<WPPostNode | null>
 
   if (!data.post) return null
 
-  // Normalise caption to plain text
-  if (data.post.featuredImage?.node.caption) {
-    data.post.featuredImage.node.caption = stripTags(
-      data.post.featuredImage.node.caption,
-    )
+  // Normalise caption to plain text if it exists
+  const featuredImageNode = data.post.featuredImage?.node;
+  
+  if (featuredImageNode?.caption) {
+    featuredImageNode.caption = stripTags(featuredImageNode.caption);
   }
+
+  // NOTE: photoSource is handled via mediaDetails which we don't 
+  // strip tags from usually, as it's a plain text ACF field.
 
   return data.post
 }
-
 // ─── Archives ─────────────────────────────────────────────────────────────────
 
 export async function getCategoryArchive(
