@@ -10,10 +10,10 @@ export async function fetchAPI<T>(
   revalidate: number = 60,
   tags: string[] = ['wordpress-data'],
 ): Promise<T> {
-  const url = process.env.WORDPRESS_API_URL
+  const url = process.env.NEXT_PUBLIC_WORDPRESS_API_URL
 
   if (!url) {
-    throw new Error('WORDPRESS_API_URL is not set in environment variables')
+    throw new Error('NEXT_PUBLIC_WORDPRESS_API_URL is not set in environment variables')
   }
 
   const res = await fetch(url, {

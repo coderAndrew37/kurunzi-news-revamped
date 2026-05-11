@@ -2,50 +2,45 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // 1. Image Optimization
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "cdn.sanity.io",
-        pathname: "**",
-      },
-
-      // ADD THIS SECTION FOR SUPABASE
-      {
-        protocol: "https",
-        hostname: "ypnloyeywhgpnrjbllni.supabase.co",
-        pathname: "/storage/v1/object/public/**",
-      },
-      {
-        protocol: "http",
-        hostname: "kurunzi-sports.local",
-        port: "",
-        pathname: "/wp-content/uploads/**",
-      },
-      {
-        protocol: "https",
-        hostname: "kurunzinews.co.ke",
-        port: "",
-        pathname: "/wp-content/uploads/**",
-      },
-      //add unsplash for local development with ngrok
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "**",
-      },
-      //add secure.gravatar.com for local development with ngrok
-      {
-        protocol: "https",
-        hostname: "secure.gravatar.com",
-        pathname: "**",
-      },
-    ],
-    // High-performance news sites use specific device sizes
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    formats: ["image/avif", "image/webp"],
-  },
+ images: {
+  remotePatterns: [
+    {
+      protocol: "https",
+      hostname: "cdn.sanity.io",
+    },
+    {
+      protocol: "https",
+      hostname: "ypnloyeywhgpnrjbllni.supabase.co",
+      pathname: "/storage/v1/object/public/**",
+    },
+    // Local WordPress
+    {
+      protocol: "http",
+      hostname: "kurunzi-sports.local",
+    },
+    {
+      protocol: "http",
+      hostname: "localhost",
+    },
+    {
+      protocol: "http",
+      hostname: "127.0.0.1",
+    },
+    {
+      protocol: "https",
+      hostname: "kurunzinews.co.ke",
+    },
+    // For development images
+    {
+      protocol: "https",
+      hostname: "images.unsplash.com",
+    },
+    {
+      protocol: "https",
+      hostname: "secure.gravatar.com",
+    },
+  ],
+},
 
   reactStrictMode: true,
   poweredByHeader: false,
