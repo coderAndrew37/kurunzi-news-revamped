@@ -1,4 +1,4 @@
-import HeroSection from "@/app/_components/wordpress/WPHeroSection";
+import SportsHero from "@/app/_components/wordpress/SportsHeroSection";
 import BreakingNewsTicker from "../../_components/wordpress/WPBreakingNewsTicker";
 import NewsSection from "../../_components/wordpress/WPNewsSection";
 import { getSportsPosts } from "@/lib/wordpress/data";
@@ -15,19 +15,13 @@ export default async function HomePage() {
     );
   }
 
-  // 1. Hero — prefer a post flagged isHero, otherwise fall back to the latest
-  const heroArticle =
-    allPosts.find((post) => post.newsData.isHero) || allPosts[0];
+  // Everything except the first 5 (carousel) goes to category sections
+  const remainingPosts = allPosts.slice(5);
 
-  // 2. Everything else, newest first
-  const remainingPosts = allPosts.filter(
-    (post) => post.slug !== heroArticle.slug,
-  );
-
-  // 3. Unique categories from remaining posts (preserves date-desc order)
+  // Unique categories from remaining posts
   const categories = Array.from(new Set(remainingPosts.map((p) => p.category)));
 
-  // 4. Per-category sections
+  // Per-category sections
   const sections = categories.map((cat) => ({
     title: cat,
     slug: cat.toLowerCase().replace(/\s+/g, "-"),
@@ -41,8 +35,8 @@ export default async function HomePage() {
     >
       <BreakingNewsTicker />
 
-      {/* Pass hero + full remaining list so the sidebar can show latest posts */}
-      <HeroSection hero={heroArticle} latestPosts={remainingPosts} />
+      {/* SportsHero uses posts[0–4] for carousel, posts[5–9] for trending */}
+      <SportsHero posts={allPosts} />
 
       {sections.map((section) => (
         <NewsSection
