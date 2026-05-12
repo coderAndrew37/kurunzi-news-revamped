@@ -1,25 +1,25 @@
-// lib/wordpress.ts
-// All data-fetching functions for Kurunzi Sports.
-// Import from here in pages/components — never call fetchAPI directly.
+// lib/wordpress/data.ts
+// All data-fetching functions. Import from here in pages/components.
+// Never call fetchAPI directly from pages.
 
 import { fetchAPI, QUERIES } from './wp-api'
 import type {
-  SportsPost,
-  WPPostNode,
+  AuthorProfile,
   NavCategory,
   PageInfo,
   SitemapPostNode,
+  SportsPost,
+  TagInfo,
+  WPPostNode,
 } from './types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Strips HTML tags from WP caption strings e.g. "<p>Photo: Reuters</p>" → "Photo: Reuters" */
 function stripTags(html: string | null): string | null {
   if (!html) return null
   return html.replace(/<[^>]*>/g, '').trim() || null
 }
 
-/** Maps a raw WPPostNode to the lean SportsPost card shape */
 function toSportsPost(post: WPPostNode): SportsPost {
   return {
     title: post.title,
@@ -31,14 +31,25 @@ function toSportsPost(post: WPPostNode): SportsPost {
     newsData: {
       isHero: post.articleFields?.newsData?.isHero ?? false,
       isBreaking: post.articleFields?.newsData?.isBreaking ?? false,
-      theLede: post.articleFields?.newsData?.theLede ?? 'No summary available.',
+      theLede: post.articleFields?.newsData?.theLede ?? '',
     },
+  }
+}
+
+// ─── Internal WP response shapes (never exported) ─────────────────────────────
+
+interface WPUserNode {
+  name: string
+  description: string | null
+  avatar: { url: string } | null
+  posts: {
+    nodes: WPPostNode[]
+    pageInfo: PageInfo
   }
 }
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
 
-/** Homepage / feed — lean card data, 100 most recent posts */
 export async function getSportsPosts(): Promise<SportsPost[]> {
   const data = await fetchAPI<{ posts: { nodes: WPPostNode[] } }>(
     QUERIES.GET_SPORTS_POSTS,
@@ -49,15 +60,6 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
   return (data.posts?.nodes ?? []).map(toSportsPost)
 }
 
-/**
- * Full article by slug — returns the complete WPPostNode including
- * articleFields, matchData, author, SEO, and featured image caption.
- * Returns null if the post doesn't exist (triggers 404 in the page).
- */
-/**
- * Full article by slug — returns the complete WPPostNode including
- * articleFields, matchData, author, SEO, and featured image caption.
- */
 export async function getArticleBySlug(slug: string): Promise<WPPostNode | null> {
   const data = await fetchAPI<{ post: WPPostNode | null }>(
     QUERIES.GET_ARTICLE_BY_SLUG,
@@ -68,23 +70,20 @@ export async function getArticleBySlug(slug: string): Promise<WPPostNode | null>
 
   if (!data.post) return null
 
-  // Normalise caption to plain text if it exists
-  const featuredImageNode = data.post.featuredImage?.node;
-  
-  if (featuredImageNode?.caption) {
-    featuredImageNode.caption = stripTags(featuredImageNode.caption);
+  // Normalise caption HTML → plain text
+  const imgNode = data.post.featuredImage?.node
+  if (imgNode?.caption) {
+    imgNode.caption = stripTags(imgNode.caption)
   }
-
-  // NOTE: photoSource is handled via mediaDetails which we don't 
-  // strip tags from usually, as it's a plain text ACF field.
 
   return data.post
 }
+
 // ─── Archives ─────────────────────────────────────────────────────────────────
 
 export async function getCategoryArchive(
   categorySlug: string,
-  first: number = 10,
+  first = 10,
   after: string | null = null,
 ): Promise<{ posts: SportsPost[]; pageInfo: PageInfo }> {
   const data = await fetchAPI<{
@@ -104,11 +103,11 @@ export async function getCategoryArchive(
 
 export async function getPostsByTag(
   tagSlug: string,
-  first: number = 10,
+  first = 10,
   after: string | null = null,
-): Promise<{ tagInfo: { name: string; count: number; slug: string } | null; posts: SportsPost[]; pageInfo: PageInfo }> {
+): Promise<{ tagInfo: TagInfo | null; posts: SportsPost[]; pageInfo: PageInfo }> {
   const data = await fetchAPI<{
-    tag: { name: string; count: number; slug: string } | null
+    tag: TagInfo | null
     posts: { nodes: WPPostNode[]; pageInfo: PageInfo }
   }>(
     QUERIES.GET_POSTS_BY_TAG,
@@ -128,21 +127,10 @@ export async function getPostsByTag(
 
 export async function getAuthorProfile(
   slug: string,
-  first: number = 10,
+  first = 10,
   after: string | null = null,
-): Promise<{
-  author: { name: string; description: string | null; avatar: { url: string } | null } | null
-  posts: SportsPost[]
-  pageInfo: PageInfo
-}> {
-  const data = await fetchAPI<{
-    user: {
-      name: string
-      description: string | null
-      avatar: { url: string } | null
-      posts: { nodes: WPPostNode[]; pageInfo: PageInfo }
-    } | null
-  }>(
+): Promise<{ author: AuthorProfile | null; posts: SportsPost[]; pageInfo: PageInfo }> {
+  const data = await fetchAPI<{ user: WPUserNode | null }>(
     QUERIES.GET_AUTHOR_PROFILE,
     { slug, first, after },
     300,
@@ -151,7 +139,11 @@ export async function getAuthorProfile(
 
   return {
     author: data.user
-      ? { name: data.user.name, description: data.user.description ?? null, avatar: data.user.avatar ?? null }
+      ? {
+          name: data.user.name,
+          description: data.user.description,
+          avatar: data.user.avatar,
+        }
       : null,
     posts: (data.user?.posts?.nodes ?? []).map(toSportsPost),
     pageInfo: data.user?.posts?.pageInfo ?? { hasNextPage: false, endCursor: null },
@@ -160,7 +152,6 @@ export async function getAuthorProfile(
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
-/** Cached for 1 hour — categories rarely change */
 export async function getNavCategories(): Promise<NavCategory[]> {
   const data = await fetchAPI<{ categories: { nodes: Array<{ name: string; slug: string }> } }>(
     QUERIES.GET_NAV_CATEGORIES,
@@ -176,7 +167,6 @@ export async function getNavCategories(): Promise<NavCategory[]> {
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 
-/** Short revalidate (10s) — search results should feel fresh */
 export async function searchArticles(searchTerm: string): Promise<SportsPost[]> {
   const data = await fetchAPI<{ posts: { nodes: WPPostNode[] } }>(
     QUERIES.SEARCH_ARTICLES,
@@ -189,7 +179,6 @@ export async function searchArticles(searchTerm: string): Promise<SportsPost[]> 
 
 // ─── Sitemap ──────────────────────────────────────────────────────────────────
 
-/** Used by next-sitemap or generateStaticParams. Cached for 24h. */
 export async function getAllPostSlugs(): Promise<
   { slug: string; date: string; category: string }[]
 > {

@@ -1,8 +1,6 @@
-// lib/api.ts
+// lib/wordpress/wp-api.ts
 // Core fetcher + all GraphQL query strings.
-// Import fetchAPI and QUERIES into wordpress.ts only — not into pages directly.
-
-// ─── Core Fetcher ─────────────────────────────────────────────────────────────
+// Only data.ts should import from here.
 
 export async function fetchAPI<T>(
   query: string,
@@ -37,32 +35,36 @@ export async function fetchAPI<T>(
   return json.data as T
 }
 
-// ─── Query Strings ────────────────────────────────────────────────────────────
-// Rules:
-// - newsData, matchData, etc. always live under articleFields { }
-// - featuredImage always includes caption and mediaDetails for next/image
-// - seo block requires WPGraphQL for RankMath plugin
+// ─── Image fragment ───────────────────────────────────────────────────────────
+// photoSource is intentionally excluded — the ACF "Media Details" field group
+// needs additional GraphQL setup before it can be queried here.
+// See: TODO in types.ts → WPMediaDetails for re-adding it later.
+
+const IMAGE_FIELDS = `
+  featuredImage {
+    node {
+      sourceUrl
+      altText
+      caption
+      mediaDetails {
+        width
+        height
+      }
+    }
+  }
+`
+
+// ─── Queries ──────────────────────────────────────────────────────────────────
 
 export const QUERIES = {
 
-  // ── Homepage / feed ─────────────────────────────────────────────────────────
   GET_SPORTS_POSTS: `
     query GetSportsData {
       posts(first: 100, where: { orderby: { field: DATE, order: DESC } }) {
         nodes {
-          title
-          slug
-          date
-          excerpt
+          title slug date excerpt
           categories { nodes { name slug } }
-          featuredImage {
-            node {
-              sourceUrl
-              altText
-              caption
-              mediaDetails { width height }
-            }
-          }
+          ${IMAGE_FIELDS}
           articleFields {
             newsData { isHero isBreaking theLede }
             articleCategoryType
@@ -73,39 +75,21 @@ export const QUERIES = {
     }
   `,
 
-  // ── Single article ───────────────────────────────────────────────────────────
-  // caption on featuredImage = photo credit line shown below hero image.
-  // content contains the full post body HTML including any inline <img> blocks
-  // added via Gutenberg image blocks — these are handled on the frontend
-  // by the RichText / content renderer component.
+  // seo block requires "WPGraphQL for RankMath" plugin.
+  // Plugin: https://wordpress.org/plugins/wp-graphql-rank-math/
+  // If not installed, remove the seo { ... } block — it will gracefully be null.
   GET_ARTICLE_BY_SLUG: `
     query GetArticleBySlug($slug: ID!) {
       post(id: $slug, idType: SLUG) {
-        title
-        content
-        date
-        excerpt
-        slug
+        title content date excerpt slug
         categories { nodes { name slug } }
-        tags { nodes { name slug } }
-        featuredImage {
-          node {
-            sourceUrl
-            altText
-            caption
-            mediaDetails { width height }
-          }
-        }
+        tags { nodes { name slug count } }
+        ${IMAGE_FIELDS}
         articleFields {
           newsData { isHero isBreaking theLede }
           matchData {
-            homeTeam
-            awayTeam
-            finalScore
-            competition
-            matchDatetime
-            venue
-            matchStatus
+            homeTeam awayTeam finalScore
+            competition matchDatetime venue matchStatus
           }
           articleCategoryType
           readingTime
@@ -119,49 +103,32 @@ export const QUERIES = {
         }
         author {
           node {
-            name
-            slug
-            description
+            name slug description
             avatar { url }
           }
         }
-        seo {
-          title
-          description
-          canonicalUrl
-          openGraph {
-            title
-            description
-            image { url }
-          }
-        }
+        # seo block requires "WPGraphQL for RankMath" plugin (free, wordpress.org).
+        # Search for "RankMath WPGraphQL" or "wp-graphql-rank-math" on wordpress.org.
+        # Uncomment when installed:
+        # seo {
+        #   title description canonicalUrl
+        #   openGraph { title description image { url } }
+        # }
       }
     }
   `,
 
-  // ── Category archive with pagination ────────────────────────────────────────
   GET_CATEGORY_ARCHIVE: `
     query GetCategoryArchive($category: String!, $first: Int!, $after: String) {
       posts(
         where: { categoryName: $category, orderby: { field: DATE, order: DESC } }
-        first: $first
-        after: $after
+        first: $first after: $after
       ) {
         pageInfo { hasNextPage endCursor }
         nodes {
-          title
-          slug
-          date
-          excerpt
+          title slug date excerpt
           categories { nodes { name slug } }
-          featuredImage {
-            node {
-              sourceUrl
-              altText
-              caption
-              mediaDetails { width height }
-            }
-          }
+          ${IMAGE_FIELDS}
           articleFields {
             newsData { theLede isHero isBreaking }
             articleCategoryType
@@ -171,33 +138,20 @@ export const QUERIES = {
     }
   `,
 
-  // ── Author profile + their posts ─────────────────────────────────────────────
   GET_AUTHOR_PROFILE: `
     query GetAuthorProfile($slug: ID!, $first: Int!, $after: String) {
       user(id: $slug, idType: SLUG) {
-        name
-        description
+        name description
         avatar { url }
         posts(
-          first: $first
-          after: $after
+          first: $first after: $after
           where: { orderby: { field: DATE, order: DESC } }
         ) {
           pageInfo { hasNextPage endCursor }
           nodes {
-            title
-            slug
-            date
-            excerpt
+            title slug date excerpt
             categories { nodes { name slug } }
-            featuredImage {
-              node {
-                sourceUrl
-                altText
-                caption
-                mediaDetails { width height }
-              }
-            }
+            ${IMAGE_FIELDS}
             articleFields { newsData { theLede isHero isBreaking } }
           }
         }
@@ -205,7 +159,6 @@ export const QUERIES = {
     }
   `,
 
-  // ── Nav categories (1h cache, rarely changes) ────────────────────────────────
   GET_NAV_CATEGORIES: `
     query GetNavCategories {
       categories(first: 10, where: { hideEmpty: true, exclude: "1" }) {
@@ -214,63 +167,39 @@ export const QUERIES = {
     }
   `,
 
-  // ── Search (short 10s cache) ─────────────────────────────────────────────────
   SEARCH_ARTICLES: `
     query SearchPosts($query: String!) {
       posts(where: { search: $query }, first: 20) {
         nodes {
-          title
-          slug
-          date
-          excerpt
+          title slug date excerpt
           categories { nodes { name slug } }
-          featuredImage {
-            node {
-              sourceUrl
-              altText
-              caption
-              mediaDetails { width height }
-            }
-          }
+          ${IMAGE_FIELDS}
           articleFields { newsData { theLede } }
         }
       }
     }
   `,
 
-  // ── Tag archive with pagination ──────────────────────────────────────────────
   GET_POSTS_BY_TAG: `
     query GetPostsByTag($tag: [String], $first: Int!, $after: String) {
       tag(id: $tag, idType: SLUG) { name count slug }
       posts(where: { tagIn: $tag }, first: $first, after: $after) {
         pageInfo { hasNextPage endCursor }
         nodes {
-          title
-          slug
-          date
-          excerpt
+          title slug date excerpt
           categories { nodes { name slug } }
-          featuredImage {
-            node {
-              sourceUrl
-              altText
-              caption
-              mediaDetails { width height }
-            }
-          }
+          ${IMAGE_FIELDS}
           articleFields { newsData { theLede } }
         }
       }
     }
   `,
 
-  // ── All slugs for generateStaticParams + sitemap (24h cache) ────────────────
   GET_ALL_SLUGS: `
     query GetAllPostSlugs {
       posts(first: 10000, where: { status: PUBLISH }) {
         nodes {
-          slug
-          date
+          slug date
           categories { nodes { slug } }
         }
       }

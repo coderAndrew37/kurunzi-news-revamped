@@ -1,18 +1,20 @@
+// app/(public)/wordpress/[category]/[slug]/_components/ArticleHeader.tsx
+"use client";
+
 import Link from "next/link";
 import { Calendar, Clock } from "lucide-react";
+import { WPPostNode } from "@/lib/wordpress/types";
 import SkeletonImage from "@/app/_components/ui/SkeletonImage";
-import ArticleShareMenu from "./ArticleShareMenu";
-import { ArticleDetail } from "@/lib/wordpress/types";
+import ArticleShareButton from "./ArticleShareButton";
+import ArticleBookmarkButton from "./ArticleBookmarkButton";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function calcReadingTime(html: string) {
+function calcReadingTime(html: string): number {
   const text = html.replace(/<[^>]+>/g, " ").trim();
   const words = text.split(/\s+/).filter((w) => w.length > 0).length;
   return Math.max(1, Math.ceil(words / 200));
 }
 
-function getTimeAgo(date: Date) {
+function getTimeAgo(date: Date): string {
   const h = Math.floor((Date.now() - date.getTime()) / 3_600_000);
   if (h < 1) return "Just now";
   if (h < 24) return `${h}h ago`;
@@ -22,32 +24,34 @@ function getTimeAgo(date: Date) {
   return `${Math.floor(d / 7)}w ago`;
 }
 
-function stripHtml(html: string) {
-  return html.replace(/<[^>]+>/g, "");
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
 interface Props {
-  article: ArticleDetail;
+  article: WPPostNode;
 }
 
 export default function ArticleHeader({ article }: Props) {
   const primaryCategory = article.categories?.nodes[0];
+  const authorNode = article.author?.node;
   const pub = new Date(article.date);
+
+  // ✅ Correct path: article.articleFields.newsData (not article.newsData)
+  const isBreaking = article.articleFields?.newsData?.isBreaking ?? false;
+  const lede =
+    article.articleFields?.newsData?.theLede ||
+    article.excerpt?.replace(/<[^>]+>/g, "") ||
+    "";
+
   const formattedDate = pub.toLocaleDateString("en-KE", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-  const rt = calcReadingTime(article.content);
-  const ago = getTimeAgo(pub);
-  const lede =  stripHtml(article.excerpt ?? "") || article.title ;
-  const authorNode = article.author?.node;
+  const readingTime = calcReadingTime(article.content);
+  const timeAgo = getTimeAgo(pub);
 
   return (
     <header className="max-w-[1140px] mx-auto px-4 sm:px-6 pt-10 pb-8">
       <div className="max-w-[720px] mx-auto">
+
         {/* Kicker */}
         {primaryCategory && (
           <Link href={`/${primaryCategory.slug}`} className="kn-kicker">
@@ -56,7 +60,7 @@ export default function ArticleHeader({ article }: Props) {
         )}
 
         {/* Breaking badge */}
-        {article.isBreaking && (
+        {isBreaking && (
           <div className="flex items-center gap-2 mb-4">
             <span className="kn-breaking-badge">
               <span className="kn-pulse-dot" />
@@ -72,28 +76,21 @@ export default function ArticleHeader({ article }: Props) {
         {lede && <p className="kn-deck">{lede}</p>}
 
         {/* Byline row */}
-        <div
-          className="flex flex-wrap items-center justify-between gap-4 pt-5"
-          style={{ borderTop: "1px solid var(--color-rule)" }}
-        >
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-5 border-t border-[var(--rule)]">
+
           {/* Author */}
           <div className="flex items-center gap-3">
-            <div
-              className="relative w-11 h-11 rounded-full overflow-hidden shrink-0"
-              style={{ border: "2px solid var(--color-rule)" }}
-            >
+            <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border-2 border-[var(--rule)]">
               <SkeletonImage
-                src={authorNode?.avatar?.url}
+                src={authorNode?.avatar?.url ?? null}
                 alt={authorNode?.name ?? "Author"}
                 className="rounded-full"
               />
             </div>
+
             <div>
               {authorNode ? (
-                <Link
-                  href={`/author/${authorNode.slug}`}
-                  className="kn-byline-author"
-                >
+                <Link href={`/author/${authorNode.slug}`} className="kn-byline-author">
                   {authorNode.name}
                 </Link>
               ) : (
@@ -102,17 +99,20 @@ export default function ArticleHeader({ article }: Props) {
               <div className="kn-meta">
                 <Calendar size={11} />
                 <span>{formattedDate}</span>
-                <span className="text-[var(--color-ink-faint)]">·</span>
+                <span className="text-[var(--ink-faint)]">·</span>
                 <Clock size={11} />
-                <span>{rt} min read</span>
-                <span className="text-[var(--color-ink-faint)]">·</span>
-                <span>{ago}</span>
+                <span>{readingTime} min read</span>
+                <span className="text-[var(--ink-faint)]">·</span>
+                <span>{timeAgo}</span>
               </div>
             </div>
           </div>
 
-          {/* Share + Bookmark */}
-          <ArticleShareMenu title={article.title} slug={article.slug} />
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <ArticleShareButton title={article.title} />
+            <ArticleBookmarkButton slug={article.slug} />
+          </div>
         </div>
       </div>
     </header>

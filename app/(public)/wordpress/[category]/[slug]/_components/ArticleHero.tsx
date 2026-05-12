@@ -1,50 +1,31 @@
+// app/(public)/wordpress/[category]/[slug]/_components/ArticleHero.tsx
 import SkeletonImage from "@/app/_components/ui/SkeletonImage";
-import { ArticleDetail } from "@/lib/wordpress/types";
+import { WPPostNode } from "@/lib/wordpress/types";
 
 interface Props {
-  article: ArticleDetail;
+  article: WPPostNode;
 }
 
 export default function ArticleHero({ article }: Props) {
   const img = article.featuredImage?.node;
-  
-  /**
-   * We extract the credit from mediaDetails to keep the JSX clean.
-   * This matches the structured type extension in your WPImageNode.
-   */
-  const photoCredit = img?.mediaDetails?.photoSource;
-
-  // If there is no image source, we don't render the hero block to avoid layout shifts
-  if (!img?.sourceUrl) return null;
 
   return (
-    <div className="max-w-[1140px] mx-auto px-4 sm:px-6 pb-8">
+    <div className="max-w-[1140px] mx-auto px-4 sm:px-6 pb-10">
       <figure>
-        {/* Aspect-ratio wrapper — ultrawide on desktop, 16/9 on mobile */}
-        <div className="kn-hero-ratio">
+        {/* 16:9 mobile → cinematic 21:9 desktop */}
+        <div className="relative w-full overflow-hidden rounded-sm bg-[var(--paper-warm)] aspect-video lg:aspect-[21/9]">
           <SkeletonImage
-            src={img.sourceUrl}
-            alt={img.altText || article.title}
-            className="kn-hero-ratio"
+            src={img?.sourceUrl ?? null}
+            alt={img?.altText ?? article.title}
+            priority
+            className="object-cover"
           />
         </div>
 
-        {/* Caption + credit beneath the image */}
-        {(img.caption || photoCredit) && (
-          <figcaption className="kn-figcaption mt-3 px-1 flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-2">
-            {img.caption && (
-              <div
-                className="text-sm leading-snug"
-                style={{ color: "var(--color-ink-soft)" }}
-                dangerouslySetInnerHTML={{ __html: img.caption }}
-              />
-            )}
-            
-            {photoCredit && (
-              <span className="kn-photo-credit whitespace-nowrap">
-                {photoCredit}
-              </span>
-            )}
+        {/* Caption = WP media library Caption field (plain text after stripTags in data.ts) */}
+        {img?.caption && (
+          <figcaption className="mt-2.5 pl-3 border-l-2 border-[var(--accent)] font-['Barlow_Condensed'] text-[11px] tracking-[0.03em] text-[var(--ink-muted)] leading-snug">
+            {img.caption}
           </figcaption>
         )}
       </figure>

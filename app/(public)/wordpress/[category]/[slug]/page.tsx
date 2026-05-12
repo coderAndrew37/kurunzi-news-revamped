@@ -1,19 +1,15 @@
-
+// app/(public)/wordpress/[category]/[slug]/page.tsx
 import { notFound } from "next/navigation";
-import ArticlePageClient from "./WPArticlePageClient";
 import Script from "next/script";
 import { getAllPostSlugs, getArticleBySlug, getSportsPosts } from "@/lib/wordpress/data";
-import { siteUrl } from "@/next-sitemap.config";
+import ArticlePageClient from "./WPArticlePageClient";
 
 interface PageParams {
   category: string;
   slug: string;
 }
 
-
-
-// ─── STATIC GENERATION ──────────────────────────────────────────────────────
-// Pre-builds the paths for the sitemap/recent posts for instant loading
+// ─── STATIC GENERATION ───────────────────────────────────────────────────────
 export async function generateStaticParams() {
   const posts = await getAllPostSlugs();
   return posts.map((post) => ({
@@ -22,7 +18,7 @@ export async function generateStaticParams() {
   }));
 }
 
-// ─── METADATA ───────────────────────────────────────────────────────────────
+// ─── METADATA ────────────────────────────────────────────────────────────────
 export async function generateMetadata({
   params,
 }: {
@@ -33,24 +29,36 @@ export async function generateMetadata({
 
   if (!article) return { title: "Article Not Found | Kurunzi Sports" };
 
-  const cleanDescription =
-    article.excerpt?.replace(/<[^>]+>/g, "") || article.title;
+  // Prefer Rank Math SEO fields, fall back to ACF lede / excerpt / title
+  const title =
+    article.seo?.title ?? `${article.title} | Kurunzi Sports`;
+
+  const description =
+    article.seo?.description ??
+    article.articleFields?.newsData?.theLede ??
+    article.excerpt?.replace(/<[^>]+>/g, "") ??
+    article.title;
+
+  const ogImage =
+    article.seo?.openGraph?.image?.url ??
+    article.featuredImage?.node?.sourceUrl ??
+    "/og-image.jpg";
 
   return {
-    title: `${article.title} | Kurunzi Sports`,
-    description: cleanDescription,
+    title,
+    description,
     openGraph: {
-      title: article.title,
-      description: cleanDescription,
-      images: [article.featuredImage?.node?.sourceUrl || "/og-image.jpg"],
+      title: article.seo?.openGraph?.title ?? article.title,
+      description: article.seo?.openGraph?.description ?? description,
+      images: [ogImage],
       type: "article",
       publishedTime: article.date,
-      authors: [article.author?.node?.name || "Kurunzi Sports"],
+      authors: [article.author?.node?.name ?? "Kurunzi Sports"],
     },
   };
 }
 
-// ─── PAGE COMPONENT ─────────────────────────────────────────────────────────
+// ─── PAGE ────────────────────────────────────────────────────────────────────
 export default async function ArticlePage({
   params,
 }: {
@@ -58,7 +66,6 @@ export default async function ArticlePage({
 }) {
   const { slug } = await params;
 
-  // Parallel data fetching for speed
   const [article, allPosts] = await Promise.all([
     getArticleBySlug(slug),
     getSportsPosts(),
@@ -66,25 +73,28 @@ export default async function ArticlePage({
 
   if (!article) notFound();
 
-  // Sidebar Logic
   const latestPosts = allPosts.slice(0, 5);
   const primaryCatName = article.categories?.nodes[0]?.name;
   const relatedPosts = allPosts
     .filter((p) => p.category === primaryCatName && p.slug !== slug)
     .slice(0, 3);
 
-  // Google News Schema (JSON-LD)
+  // siteUrl from env — never import from next-sitemap.config (it's not a TS module)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kurunzisports.com";
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     headline: article.title,
-    image: [article.featuredImage?.node?.sourceUrl],
+    image: article.featuredImage?.node?.sourceUrl
+      ? [article.featuredImage.node.sourceUrl]
+      : [],
     datePublished: article.date,
     author: [
       {
         "@type": "Person",
-        name: article.author?.node?.name,
-        url: `${siteUrl}}/author/${article.author?.node?.slug}`,
+        name: article.author?.node?.name ?? "Kurunzi Sports",
+        url: `${siteUrl}/author/${article.author?.node?.slug ?? "editorial"}`,
       },
     ],
   };

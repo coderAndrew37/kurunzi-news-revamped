@@ -1,9 +1,10 @@
+// app/(public)/wordpress/[category]/[slug]/_components/ArticleAuthorBio.tsx
 import Link from "next/link";
 import SkeletonImage from "@/app/_components/ui/SkeletonImage";
-import { ArticleDetail } from "@/lib/wordpress/types";
+import { WPPostNode } from "@/lib/wordpress/types";
 
 interface Props {
-  article: ArticleDetail;
+  article: WPPostNode;
 }
 
 export default function ArticleAuthorBio({ article }: Props) {
@@ -11,30 +12,18 @@ export default function ArticleAuthorBio({ article }: Props) {
   if (!authorNode) return null;
 
   return (
-    <footer
-      className="px-4 sm:px-6 py-14"
-      style={{
-        borderTop: "2px solid var(--color-ink)",
-        background: "var(--color-paper-warm)",
-      }}
-    >
+    <footer className="px-4 sm:px-6 py-14 border-t-2 border-[var(--ink)] bg-[var(--paper-warm)]">
       <div className="max-w-[720px] mx-auto flex gap-6 items-start">
-        {/* Avatar */}
         <div
-          className="relative shrink-0 w-[72px] h-[72px] rounded-full overflow-hidden"
-          style={{
-            border: "3px solid white",
-            boxShadow: "0 2px 8px rgba(0,0,0,.1)",
-          }}
+          className="relative shrink-0 w-[72px] h-[72px] rounded-full overflow-hidden border-[3px] border-white shadow-md"
         >
           <SkeletonImage
-            src={authorNode.avatar?.url}
+            src={authorNode.avatar?.url ?? null}
             alt={authorNode.name}
             className="rounded-full"
           />
         </div>
 
-        {/* Bio text */}
         <div>
           <Link href={`/author/${authorNode.slug}`} className="kn-bio-name">
             {authorNode.name}

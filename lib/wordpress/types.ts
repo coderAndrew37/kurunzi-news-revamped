@@ -1,4 +1,11 @@
-// lib/types.ts
+// lib/wordpress/types.ts
+// Single source of truth for all WordPress/GraphQL types.
+// Rules:
+//  - No `any`. Ever.
+//  - No duplicate type definitions (ArticleDetail is gone — use WPPostNode everywhere).
+//  - Optional fields use `field: T | null`, never `field?: T` for GraphQL nullable fields.
+//    (GraphQL null ≠ undefined — being explicit avoids subtle runtime bugs.)
+//  - `seo` is null when WPGraphQL for RankMath plugin is not installed.
 
 // ─── ACF Field Groups ─────────────────────────────────────────────────────────
 
@@ -31,21 +38,29 @@ export interface ArticleFields {
 }
 
 // ─── Media ────────────────────────────────────────────────────────────────────
+// mediaDetails is the WPGraphQL built-in type — only width/height live here.
+// photoSource is an ACF field on MediaItem (Attachments), queried separately
+// via the "Media Details" field group → exposed as mediaDetails { photoSource }
+// only if you have a custom ACF field group on MediaItem with that field name
+// AND it is exposed to GraphQL. Check your ACF Field Groups → Media Details.
+// If photoSource is not yet in GraphQL, leave it as null and add it later.
+
+export interface WPMediaDetails {
+  width: number;
+  height: number;
+  // TODO: photoSource — ACF field on MediaItem via "Media Details" field group.
+  // Re-add `photoSource` here AND to the IMAGE_FIELDS fragment in wp-api.ts
+  // once the ACF field is confirmed visible in GraphQL (ACF → field → Show in GraphQL).
+}
 
 export interface WPImageNode {
   sourceUrl: string;
   altText: string;
-  // caption comes from WordPress media library's built-in caption field.
-  // In GraphQL this is a string containing HTML (e.g. <p>Photo: John Doe</p>).
-  // Strip tags on the frontend if you want plain text.
+  // caption = WordPress media library Caption field.
+  // Arrives as HTML e.g. "<p>Photo: Reuters</p>".
+  // stripTags() in data.ts normalises it to plain text.
   caption: string | null;
-  // mediaDetails gives you width/height for next/image sizing
-  mediaDetails: {
-    width: number;
-    height: number;
-    photoSource?: string; // Custom ACF field for photo source/credit, if you choose to use it
-  } | null;
- 
+  mediaDetails: WPMediaDetails | null;
 }
 
 export interface WPImage {
@@ -78,20 +93,25 @@ export interface WPAuthor {
   node: WPAuthorNode;
 }
 
-// ─── SEO (Rank Math) ──────────────────────────────────────────────────────────
+// ─── SEO (Rank Math via WPGraphQL for RankMath plugin) ───────────────────────
+// All fields nullable — degrades gracefully if plugin is not installed.
+// Install: https://wordpress.org/plugins/wp-graphql-rank-math/
 
-export interface WPSeo {
-  title: string;
-  description: string;
-  canonicalUrl: string | null;
-  openGraph: {
-    title: string;
-    description: string;
-    image: { url: string } | null;
-  } | null;
+export interface WPSeoOpenGraph {
+  title: string | null;
+  description: string | null;
+  image: { url: string } | null;
 }
 
-// ─── Full Post Node (from WPGraphQL) ──────────────────────────────────────────
+export interface WPSeo {
+  title: string | null;
+  description: string | null;
+  canonicalUrl: string | null;
+  openGraph: WPSeoOpenGraph | null;
+}
+
+// ─── Full Post Node (raw WPGraphQL response shape) ────────────────────────────
+// This is the canonical article type. Use it everywhere — no ArticleDetail alias.
 
 export interface WPPostNode {
   title: string;
@@ -104,12 +124,11 @@ export interface WPPostNode {
   featuredImage: WPImage | null;
   articleFields: ArticleFields;
   author: WPAuthor;
+  // null when WPGraphQL for RankMath is not installed
   seo: WPSeo | null;
-  isBreaking: boolean;
-  id: string;
-  }
+}
 
-// ─── Sitemap-only slim shape ──────────────────────────────────────────────────
+// ─── Sitemap slim shape ───────────────────────────────────────────────────────
 
 export interface SitemapPostNode {
   slug: string;
@@ -117,9 +136,18 @@ export interface SitemapPostNode {
   categories: { nodes: Array<{ slug: string }> };
 }
 
-// ─── Transformed / UI-facing shapes ──────────────────────────────────────────
+// ─── Author profile (getAuthorProfile return) ─────────────────────────────────
 
-// Lean card shape used in lists, feeds, and hero grids
+export interface AuthorProfile {
+  name: string;
+  description: string | null;
+  avatar: { url: string } | null;
+}
+
+// ─── UI-facing / transformed shapes ──────────────────────────────────────────
+
+// Lean card used in lists, feeds, hero grids — avoids passing full WPPostNode
+// to every card component.
 export interface SportsPost {
   title: string;
   slug: string;
@@ -140,37 +168,8 @@ export interface PageInfo {
   endCursor: string | null;
 }
 
-export interface ArticleDetail {
-  id: string;
-  title: string;
+export interface TagInfo {
+  name: string;
+  count: number;
   slug: string;
-  date: string;
-  content: string;
-  excerpt: string;
-
-  // Taxonomy
-  categories: { nodes: WPCategory[] };
-  tags?: { nodes: WPTag[] } | null;
-
-  // Featured Image
-  featuredImage: WPImage | null;
-
-  // ACF Fields
-  articleFields: ArticleFields;
-
-  // Author
-  author: WPAuthor;
-
-  // SEO
-  seo?: {
-    title?: string;
-    description?: string;
-    canonicalUrl?: string;
-    openGraph?: {
-      title?: string;
-      description?: string;
-      image?: { url: string } | null;
-    };
-  } | null;
-  isBreaking: boolean;
 }

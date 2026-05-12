@@ -1,39 +1,38 @@
+// app/(public)/wordpress/[category]/[slug]/_components/ArticleBody.tsx
 import Link from "next/link";
-import { ArticleDetail } from "@/lib/wordpress/types";
+import { WPPostNode } from "@/lib/wordpress/types";
 
 interface Props {
-  article: ArticleDetail;
+  article: WPPostNode;
 }
 
 export default function ArticleBody({ article }: Props) {
+  const categories = article.categories?.nodes ?? [];
+  const tags = article.tags?.nodes ?? [];
+
   return (
     <main className="min-w-0">
-      {/* WordPress block content */}
+      {/* Post HTML from WordPress Gutenberg */}
       <div
         className="kn-wp-content"
         dangerouslySetInnerHTML={{ __html: article.content }}
       />
 
-      {/* Topic tags */}
-      {article.categories?.nodes.length > 0 && (
-        <div
-          className="mt-12 pt-6"
-          style={{ borderTop: "1px solid var(--color-rule)" }}
-        >
-          <p
-            className="mb-3 font-[family-name:var(--font-ui)] text-[10px] font-bold tracking-[.18em] uppercase"
-            style={{ color: "var(--color-ink-faint)" }}
-          >
+      {/* Category tags */}
+      {(categories.length > 0 || tags.length > 0) && (
+        <div className="mt-14 pt-6 border-t border-[var(--rule)]">
+          <p className="mb-3 font-['Barlow_Condensed'] text-[10px] font-bold tracking-[0.18em] uppercase text-[var(--ink-faint)]">
             Topics
           </p>
           <div className="flex flex-wrap gap-2">
-            {article.categories.nodes.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/${cat.slug}`}
-                className="kn-tag-chip"
-              >
+            {categories.map((cat) => (
+              <Link key={cat.slug} href={`/${cat.slug}`} className="kn-tag-chip">
                 {cat.name}
+              </Link>
+            ))}
+            {tags.map((tag) => (
+              <Link key={tag.slug} href={`/tag/${tag.slug}`} className="kn-tag-chip">
+                #{tag.name}
               </Link>
             ))}
           </div>
