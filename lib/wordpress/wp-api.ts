@@ -36,9 +36,6 @@ export async function fetchAPI<T>(
 }
 
 // ─── Image fragment ───────────────────────────────────────────────────────────
-// photoSource is intentionally excluded — the ACF "Media Details" field group
-// needs additional GraphQL setup before it can be queried here.
-// See: TODO in types.ts → WPMediaDetails for re-adding it later.
 
 const IMAGE_FIELDS = `
   featuredImage {
@@ -75,9 +72,6 @@ export const QUERIES = {
     }
   `,
 
-  // seo block requires "WPGraphQL for RankMath" plugin.
-  // Plugin: https://wordpress.org/plugins/wp-graphql-rank-math/
-  // If not installed, remove the seo { ... } block — it will gracefully be null.
   GET_ARTICLE_BY_SLUG: `
     query GetArticleBySlug($slug: ID!) {
       post(id: $slug, idType: SLUG) {
@@ -107,13 +101,6 @@ export const QUERIES = {
             avatar { url }
           }
         }
-        # seo block requires "WPGraphQL for RankMath" plugin (free, wordpress.org).
-        # Search for "RankMath WPGraphQL" or "wp-graphql-rank-math" on wordpress.org.
-        # Uncomment when installed:
-        # seo {
-        #   title description canonicalUrl
-        #   openGraph { title description image { url } }
-        # }
       }
     }
   `,
@@ -180,10 +167,26 @@ export const QUERIES = {
     }
   `,
 
+  // ── Tag query — variable types must exactly match WPGraphQL's schema ────────
+  // tag(id: $tagSlug, idType: SLUG)           → $tagSlug: ID!   (single scalar)
+  // posts(where: { tagSlugIn: $slugs })       → $slugs: [String] (slug array)
+  // These are two different WPGraphQL resolvers with incompatible input types,
+  // so they need two separate variables — a single $tag: [String] satisfies neither.
   GET_POSTS_BY_TAG: `
-    query GetPostsByTag($tag: [String], $first: Int!, $after: String) {
-      tag(id: $tag, idType: SLUG) { name count slug }
-      posts(where: { tagIn: $tag }, first: $first, after: $after) {
+    query GetPostsByTag($tagSlug: ID!, $slugs: [String], $first: Int!, $after: String) {
+      tag(id: $tagSlug, idType: SLUG) {
+        name
+        count
+        slug
+      }
+      posts(
+        first: $first
+        after: $after
+        where: {
+          tagSlugIn: $slugs
+          orderby: { field: DATE, order: DESC }
+        }
+      ) {
         pageInfo { hasNextPage endCursor }
         nodes {
           title slug date excerpt

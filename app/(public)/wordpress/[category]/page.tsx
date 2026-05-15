@@ -1,88 +1,84 @@
-import NewsSection from "@/app/_components/wordpress/WPNewsSection";
-import { getSportsPosts } from "@/lib/wordpress/data";
-import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+// app/[category]/page.tsx
+// Category landing page — uses updated NewsSection with viewAllHref prop.
+// "View All" on the first section → /[slug]/archive (full paginated list)
+// "More stories" button inside NewsSection → also /[slug]/archive
 
-export default async function CategoryPage({
-  params,
-}: {
+import { getSportsPosts } from "@/lib/wordpress/data";
+import NewsSection from "@/app/_components/wordpress/WPNewsSection";
+import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+
+interface PageProps {
   params: Promise<{ category: string }>;
-}) {
+}
+
+export default async function CategoryPage({ params }: PageProps) {
   const { category: categorySlug } = await params;
 
-  // Middleware safety check
   if (!categorySlug || categorySlug === "site" || categorySlug === "index") {
     redirect("/");
   }
 
-  // 1. Fetch all posts
   const allPosts = await getSportsPosts();
 
-  // 2. Filter posts by category slug
-  // Note: We check against the slug version of the category
   const categoryPosts = allPosts.filter(
-    (post) => post.category.toLowerCase() === categorySlug.toLowerCase(),
+    (p) => p.category.toLowerCase() === categorySlug.toLowerCase(),
   );
 
   if (categoryPosts.length === 0) notFound();
 
-  // 3. Partition data for the UI
-  const categoryTitle = categoryPosts[0].category; // Get the pretty name from the first post
-  const topPosts = categoryPosts.slice(0, 4);
-  const morePosts = categoryPosts.slice(4, 10);
+  const categoryTitle = categoryPosts[0].category;
 
   return (
-    <main className="pb-20 bg-[#fdfcfb]">
-      {/* 1. Top Section - Hero Grid for the Category */}
-      <div className="max-w-7xl mx-auto px-4 pt-12">
-        <h1 className="kn-headline text-5xl mb-8 border-b-2 border-black pb-4 uppercase tracking-tighter">
-          {categoryTitle}
-        </h1>
-      </div>
+    <main className="min-h-screen pb-20" style={{ background: "var(--paper)" }}>
 
-      <NewsSection
-        title="Leading Stories"
-        posts={topPosts}
-        slug={categorySlug}
-      />
-
-      {/* 2. Middle Banner / "Deep Dive" */}
-      <div className="max-w-7xl mx-auto px-4 my-12">
-        <div className="bg-[#f7f4f0] p-10 rounded-sm flex flex-col md:flex-row justify-between items-center border-l-8 border-[#1a5c38] gap-6">
-          <div className="max-w-2xl">
-            <h2 className="font-['Playfair_Display'] text-3xl font-black text-[#0d0d0d] leading-none mb-3">
-              The {categoryTitle} Archive
-            </h2>
-            <p className="font-['Source_Serif_4'] text-[#3d3935] italic">
-              Comprehensive coverage and late-breaking updates from the world of{" "}
-              {categoryTitle}.
-            </p>
+      {/* Category title header */}
+      <div
+        className="border-b"
+        style={{ borderColor: "var(--rule)", background: "var(--paper-warm)" }}
+      >
+        <div className="max-w-[1140px] mx-auto px-4 sm:px-6 py-8">
+          <div className="flex items-baseline gap-3">
+            <span
+              className="text-2xl font-black"
+              style={{ color: "var(--accent)", fontFamily: "var(--font-display)" }}
+            >
+              »
+            </span>
+            <h1
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(1.75rem, 4vw, 2.75rem)",
+                fontWeight: 900,
+                letterSpacing: "-0.03em",
+                color: "var(--ink)",
+              }}
+            >
+              {categoryTitle}
+            </h1>
           </div>
-
-          <Link
-            href={`/archive?category=${categorySlug}`}
-            className="kn-action-btn bg-[#0d0d0d] text-white px-8 py-4 border-none hover:bg-[#1a5c38] transition-all"
-          >
-            Browse Full Archive
-          </Link>
         </div>
       </div>
 
-      {/* 3. "More From" Section */}
+      {/* NewsSection with archive links */}
       <NewsSection
-        title={`Trending in ${categoryTitle}`}
-        posts={morePosts}
+        title={categoryTitle}
         slug={categorySlug}
+        posts={categoryPosts}
+        // On the category page, both buttons point to the paginated archive
+        viewAllHref={`/${categorySlug}/archive`}
+        viewAllLabel="Full archive"
       />
 
-      {/* 4. Footer CTA */}
-      <div className="max-w-7xl mx-auto px-4 mt-20 flex flex-col items-center">
-        <div className="h-px w-full bg-[#e8e2da] mb-12" />
+      {/* Back home */}
+      <div className="max-w-[1140px] mx-auto px-4 sm:px-6 mt-16 flex flex-col items-center">
+        <div className="h-px w-full mb-10" style={{ background: "var(--rule)" }} />
         <Link
           href="/"
-          className="kn-kicker no-underline border-b-2 border-black text-black hover:text-[#1a5c38] hover:border-[#1a5c38] text-sm"
+          className="text-[10px] font-bold uppercase tracking-[0.18em] transition-colors hover:text-[var(--accent)]"
+          style={{ color: "var(--ink-faint)", fontFamily: "var(--font-ui)" }}
         >
-          ← Back to Home
+          ← Back to all sports
         </Link>
       </div>
     </main>

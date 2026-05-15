@@ -1,25 +1,37 @@
+// middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 
-// Export as 'proxy' to satisfy the new Next.js convention
-export async function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
-  const pathname = url.pathname;
 
+  // Skip static files, API routes, etc.
   if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname.includes(".") ||
-    request.headers.has("x-proxy-done")
+    url.pathname.startsWith("/_next") ||
+    url.pathname.startsWith("/api") ||
+    url.pathname.includes(".") ||
+    url.pathname.startsWith("/wordpress") // if you have WP admin exposed
   ) {
     return NextResponse.next();
   }
 
-  url.pathname = `/wordpress${pathname === "/" ? "" : pathname}`;
-  const response = NextResponse.rewrite(url);
-  response.headers.set("x-proxy-done", "1");
-  return response;
+  // Optional: Force HTTPS in production
+  if (process.env.NODE_ENV === "production" && url.protocol === "http:") {
+    url.protocol = "https:";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico, robots.txt, etc.
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|robots.txt).*)",
+  ],
 };

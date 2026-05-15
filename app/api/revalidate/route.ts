@@ -1,42 +1,79 @@
-import { NextRequest, NextResponse } from "next/server";
-import { revalidateTag, revalidatePath } from "next-cache";
+// app/api/revalidate/route.ts
+// Called by WordPress on save_post via wp_remote_post.
+// Clears the Next.js cache for the specific post and the global posts feed.
+//
+// Required env var: REVALIDATE_SECRET
+// WordPress sends:  POST /api/revalidate
+//                   Header: x-revalidate-secret: <secret>
+//                   Body:   { slug: "my-post-slug", categories: ["football"] }
 
-export async function POST(request: NextRequest) {
-  // Check both searchParams (from add_query_arg) and Headers/Body for flexibility
-  const secret = request.nextUrl.searchParams.get("secret");
-  const tag = request.nextUrl.searchParams.get("tag");
-  const path = request.nextUrl.searchParams.get("path");
+// next/cache's revalidateTag type declaration in some Next.js 15 builds
+// incorrectly requires a second `profile` argument. Importing from the stable
+// internal export gives us the correct single-argument function without the
+// broken overload. Remove this workaround once the upstream types are fixed.
+import { revalidateTag } from 'next-cache'
+import { NextResponse } from 'next/server'
 
-  // 1. Security Check
+interface RevalidatePayload {
+  slug: string
+  categories?: string[]
+}
+
+function isRevalidatePayload(body: unknown): body is RevalidatePayload {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'slug' in body &&
+    typeof (body as Record<string, unknown>).slug === 'string'
+  )
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
+  // ── Auth check ──────────────────────────────────────────────────────────
+  const secret = request.headers.get('x-revalidate-secret')
+  if (!process.env.REVALIDATE_SECRET) {
+    console.error('[revalidate] REVALIDATE_SECRET env var is not set')
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+  }
   if (secret !== process.env.REVALIDATE_SECRET) {
-    return NextResponse.json({ message: "Invalid secret" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // ── Parse body ────────────────────────────────────────────────────────────
+  let body: unknown
   try {
-    // 2. The Tag Flex: This is much faster for Headless
-    if (tag) {
-      revalidateTag(tag);
-      return NextResponse.json({ revalidated: true, type: "tag", target: tag });
-    }
-
-    // 3. The Path Flex: Useful for manual purges
-    if (path) {
-      revalidatePath(path);
-      return NextResponse.json({
-        revalidated: true,
-        type: "path",
-        target: path,
-      });
-    }
-
-    return NextResponse.json(
-      { message: "No tag or path provided" },
-      { status: 400 },
-    );
-  } catch (err) {
-    return NextResponse.json(
-      { message: "Revalidation failed" },
-      { status: 500 },
-    );
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
+
+  if (!isRevalidatePayload(body)) {
+    return NextResponse.json({ error: 'Missing required field: slug' }, { status: 400 })
+  }
+
+  const { slug, categories = [] } = body
+
+  // ── Revalidate ────────────────────────────────────────────────────────────
+  const tags: string[] = [
+    `post-${slug}`,  // article detail page
+    'posts',         // homepage / general feed
+    'collection',    // getSportsPosts list
+    'sitemap-data',  // sitemap
+    ...categories.map((cat: string) => `category-${cat}`),
+  ]
+
+  const revalidated: string[] = []
+  for (const tag of tags) {
+    revalidateTag(tag)
+    revalidated.push(tag)
+  }
+
+  console.log(`[revalidate] Tags purged for slug "${slug}":`, revalidated)
+
+  return NextResponse.json({
+    revalidated: true,
+    slug,
+    tags: revalidated,
+    timestamp: new Date().toISOString(),
+  })
 }

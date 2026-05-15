@@ -101,6 +101,8 @@ export async function getCategoryArchive(
   }
 }
 
+
+
 export async function getPostsByTag(
   tagSlug: string,
   first = 10,
@@ -111,7 +113,9 @@ export async function getPostsByTag(
     posts: { nodes: WPPostNode[]; pageInfo: PageInfo }
   }>(
     QUERIES.GET_POSTS_BY_TAG,
-    { tag: [tagSlug], first, after },
+    // tagSlug: single string → matches $tagSlug: ID!
+    // slugs:   array        → matches $slugs: [String] used in tagSlugIn
+    { tagSlug, slugs: [tagSlug], first, after },
     60,
     [`tag-${tagSlug}`],
   )
