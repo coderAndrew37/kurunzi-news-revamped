@@ -2,7 +2,7 @@
 // All data-fetching functions. Import from here in pages/components.
 // Never call fetchAPI directly from pages.
 
-import { fetchAPI, QUERIES } from './wp-api'
+import { fetchAPI, QUERIES } from "./wp-api";
 import type {
   AuthorProfile,
   NavCategory,
@@ -11,13 +11,13 @@ import type {
   SportsPost,
   TagInfo,
   WPPostNode,
-} from './types'
+} from "./types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function stripTags(html: string | null): string | null {
-  if (!html) return null
-  return html.replace(/<[^>]*>/g, '').trim() || null
+  if (!html) return null;
+  return html.replace(/<[^>]*>/g, "").trim() || null;
 }
 
 function toSportsPost(post: WPPostNode): SportsPost {
@@ -25,27 +25,27 @@ function toSportsPost(post: WPPostNode): SportsPost {
     title: post.title,
     slug: post.slug,
     date: post.date,
-    excerpt: post.excerpt ?? '',
+    excerpt: post.excerpt ?? "",
     featuredImage: post.featuredImage?.node.sourceUrl ?? null,
-    category: post.categories.nodes[0]?.name ?? 'General',
+    category: post.categories.nodes[0]?.name ?? "General",
     newsData: {
       isHero: post.articleFields?.newsData?.isHero ?? false,
       isBreaking: post.articleFields?.newsData?.isBreaking ?? false,
-      theLede: post.articleFields?.newsData?.theLede ?? '',
+      theLede: post.articleFields?.newsData?.theLede ?? "",
     },
-  }
+  };
 }
 
 // ─── Internal WP response shapes (never exported) ─────────────────────────────
 
 interface WPUserNode {
-  name: string
-  description: string | null
-  avatar: { url: string } | null
+  name: string;
+  description: string | null;
+  avatar: { url: string } | null;
   posts: {
-    nodes: WPPostNode[]
-    pageInfo: PageInfo
-  }
+    nodes: WPPostNode[];
+    pageInfo: PageInfo;
+  };
 }
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
@@ -55,28 +55,30 @@ export async function getSportsPosts(): Promise<SportsPost[]> {
     QUERIES.GET_SPORTS_POSTS,
     {},
     60,
-    ['posts', 'collection'],
-  )
-  return (data.posts?.nodes ?? []).map(toSportsPost)
+    ["posts", "collection"],
+  );
+  return (data.posts?.nodes ?? []).map(toSportsPost);
 }
 
-export async function getArticleBySlug(slug: string): Promise<WPPostNode | null> {
+export async function getArticleBySlug(
+  slug: string,
+): Promise<WPPostNode | null> {
   const data = await fetchAPI<{ post: WPPostNode | null }>(
     QUERIES.GET_ARTICLE_BY_SLUG,
     { slug },
     60,
     [`post-${slug}`],
-  )
+  );
 
-  if (!data.post) return null
+  if (!data.post) return null;
 
   // Normalise caption HTML → plain text
-  const imgNode = data.post.featuredImage?.node
+  const imgNode = data.post.featuredImage?.node;
   if (imgNode?.caption) {
-    imgNode.caption = stripTags(imgNode.caption)
+    imgNode.caption = stripTags(imgNode.caption);
   }
 
-  return data.post
+  return data.post;
 }
 
 // ─── Archives ─────────────────────────────────────────────────────────────────
@@ -87,30 +89,32 @@ export async function getCategoryArchive(
   after: string | null = null,
 ): Promise<{ posts: SportsPost[]; pageInfo: PageInfo }> {
   const data = await fetchAPI<{
-    posts: { nodes: WPPostNode[]; pageInfo: PageInfo }
+    posts: { nodes: WPPostNode[]; pageInfo: PageInfo };
   }>(
     QUERIES.GET_CATEGORY_ARCHIVE,
     { category: categorySlug, first, after },
     60,
     [`category-${categorySlug}`],
-  )
+  );
 
   return {
     posts: (data.posts?.nodes ?? []).map(toSportsPost),
     pageInfo: data.posts?.pageInfo ?? { hasNextPage: false, endCursor: null },
-  }
+  };
 }
-
-
 
 export async function getPostsByTag(
   tagSlug: string,
   first = 10,
   after: string | null = null,
-): Promise<{ tagInfo: TagInfo | null; posts: SportsPost[]; pageInfo: PageInfo }> {
+): Promise<{
+  tagInfo: TagInfo | null;
+  posts: SportsPost[];
+  pageInfo: PageInfo;
+}> {
   const data = await fetchAPI<{
-    tag: TagInfo | null
-    posts: { nodes: WPPostNode[]; pageInfo: PageInfo }
+    tag: TagInfo | null;
+    posts: { nodes: WPPostNode[]; pageInfo: PageInfo };
   }>(
     QUERIES.GET_POSTS_BY_TAG,
     // tagSlug: single string → matches $tagSlug: ID!
@@ -118,13 +122,13 @@ export async function getPostsByTag(
     { tagSlug, slugs: [tagSlug], first, after },
     60,
     [`tag-${tagSlug}`],
-  )
+  );
 
   return {
     tagInfo: data.tag ?? null,
     posts: (data.posts?.nodes ?? []).map(toSportsPost),
     pageInfo: data.posts?.pageInfo ?? { hasNextPage: false, endCursor: null },
-  }
+  };
 }
 
 // ─── Author ───────────────────────────────────────────────────────────────────
@@ -133,13 +137,17 @@ export async function getAuthorProfile(
   slug: string,
   first = 10,
   after: string | null = null,
-): Promise<{ author: AuthorProfile | null; posts: SportsPost[]; pageInfo: PageInfo }> {
+): Promise<{
+  author: AuthorProfile | null;
+  posts: SportsPost[];
+  pageInfo: PageInfo;
+}> {
   const data = await fetchAPI<{ user: WPUserNode | null }>(
     QUERIES.GET_AUTHOR_PROFILE,
     { slug, first, after },
     300,
     [`author-${slug}`],
-  )
+  );
 
   return {
     author: data.user
@@ -150,35 +158,37 @@ export async function getAuthorProfile(
         }
       : null,
     posts: (data.user?.posts?.nodes ?? []).map(toSportsPost),
-    pageInfo: data.user?.posts?.pageInfo ?? { hasNextPage: false, endCursor: null },
-  }
+    pageInfo: data.user?.posts?.pageInfo ?? {
+      hasNextPage: false,
+      endCursor: null,
+    },
+  };
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
 export async function getNavCategories(): Promise<NavCategory[]> {
-  const data = await fetchAPI<{ categories: { nodes: Array<{ name: string; slug: string }> } }>(
-    QUERIES.GET_NAV_CATEGORIES,
-    {},
-    3600,
-    ['navigation'],
-  )
+  const data = await fetchAPI<{
+    categories: { nodes: Array<{ name: string; slug: string }> };
+  }>(QUERIES.GET_NAV_CATEGORIES, {}, 3600, ["navigation"]);
   return (data.categories?.nodes ?? []).map((cat) => ({
     title: cat.name,
     slug: cat.slug,
-  }))
+  }));
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 
-export async function searchArticles(searchTerm: string): Promise<SportsPost[]> {
+export async function searchArticles(
+  searchTerm: string,
+): Promise<SportsPost[]> {
   const data = await fetchAPI<{ posts: { nodes: WPPostNode[] } }>(
     QUERIES.SEARCH_ARTICLES,
     { query: searchTerm },
     10,
-    ['search'],
-  )
-  return (data.posts?.nodes ?? []).map(toSportsPost)
+    ["search"],
+  );
+  return (data.posts?.nodes ?? []).map(toSportsPost);
 }
 
 // ─── Sitemap ──────────────────────────────────────────────────────────────────
@@ -190,11 +200,11 @@ export async function getAllPostSlugs(): Promise<
     QUERIES.GET_ALL_SLUGS,
     {},
     86400,
-    ['sitemap-data'],
-  )
+    ["sitemap-data"],
+  );
   return (data.posts?.nodes ?? []).map((post) => ({
     slug: post.slug,
     date: post.date,
-    category: post.categories?.nodes[0]?.slug ?? 'news',
-  }))
+    category: post.categories?.nodes[0]?.slug ?? "news",
+  }));
 }

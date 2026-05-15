@@ -1,6 +1,7 @@
 import RSS from "rss";
-import { getSportsPosts } from "@/lib/wordpress/wp-api";
+import { getSportsPosts } from "@/lib/wordpress/data";
 import { NextResponse } from "next/server";
+import type { SportsPost } from "@/lib/wordpress/types";
 
 export async function GET() {
   const baseUrl =
@@ -16,22 +17,24 @@ export async function GET() {
     copyright: `All rights reserved ${new Date().getFullYear()}, Kurunzi Sports`,
   });
 
-  const posts = await getSportsPosts();
+  const posts: SportsPost[] = await getSportsPosts();
 
-  posts.forEach((post) => {
+  posts.forEach((post: SportsPost) => {
     feed.item({
       title: post.title,
-      description: post.newsData.theLede,
-      url: `${baseUrl}/${post.category.toLowerCase()}/${post.slug}`,
+      description: post.newsData.theLede || post.excerpt,
+      url: `${baseUrl}/${post.category.toLowerCase().replace(/\s+/g, "-")}/${post.slug}`,
       categories: [post.category],
       date: post.date,
+      // Optional but recommended
+      guid: `${baseUrl}/${post.slug}`,
     });
   });
 
   return new NextResponse(feed.xml({ indent: true }), {
     headers: {
-      "Content-Type": "application/xml",
-      "Cache-Control": "s-maxage=3600, stale-while-revalidate",
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "s-maxage=3600, stale-while-revalidate=86400",
     },
   });
 }
