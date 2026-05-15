@@ -1,8 +1,9 @@
 import SportsHero from "@/app/_components/wordpress/SportsHeroSection";
-import BreakingNewsTicker from "../../_components/wordpress/WPBreakingNewsTicker";
-import NewsSection from "../../_components/wordpress/WPNewsSection";
+
 import { getSportsPosts } from "@/lib/wordpress/data";
 import { SportsPost } from "@/lib/wordpress/types";
+import BreakingNewsTicker from "../_components/wordpress/WPBreakingNewsTicker";
+import NewsSection from "../_components/wordpress/WPNewsSection";
 
 export default async function HomePage() {
   const allPosts: SportsPost[] = await getSportsPosts();

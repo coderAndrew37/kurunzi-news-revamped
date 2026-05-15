@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import ArticleListItem from "@/app/_components/wordpress/WPArticleListItem";
 import { getCategoryArchive } from "@/lib/wordpress/data";
+import type { SportsPost } from "@/lib/wordpress/types";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -16,7 +17,6 @@ export default async function CategoryArchivePage({
   const { slug: categorySlug } = await params;
   const { cursor } = await searchParams;
 
-  // Using the cursor-based function for infinite scroll/pagination
   const { posts, pageInfo } = await getCategoryArchive(
     categorySlug,
     10,
@@ -54,9 +54,9 @@ export default async function CategoryArchivePage({
         </div>
       </header>
 
-      {/* Article List - Unified Component */}
+      {/* Article List */}
       <div className="flex flex-col gap-2">
-        {posts.map((post: any) => (
+        {posts.map((post: SportsPost) => (
           <ArticleListItem key={post.slug} post={post} />
         ))}
       </div>
