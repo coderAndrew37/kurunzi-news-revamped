@@ -25,6 +25,8 @@ export interface MatchData {
   matchStatus: string;
 }
 
+// lib/wordpress/types.ts
+
 export interface ArticleFields {
   newsData: NewsMetadata;
   matchData: MatchData | null;
@@ -33,7 +35,12 @@ export interface ArticleFields {
   featuredVideo: string | null;
   isHeroSlider: boolean;
   relatedArticles: {
-    nodes: Array<{ title: string; slug: string }>;
+    nodes: Array<{
+      title: string;
+      slug: string;
+      featuredImage?: WPImage | null;
+      categories?: { nodes: WPCategory[] } | null;
+    }>;
   } | null;
 }
 

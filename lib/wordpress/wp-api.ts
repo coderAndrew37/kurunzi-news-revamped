@@ -6,33 +6,39 @@ export async function fetchAPI<T>(
   query: string,
   variables: Record<string, unknown> = {},
   revalidate: number = 60,
-  tags: string[] = ['wordpress-data'],
+  tags: string[] = ["wordpress-data"],
 ): Promise<T> {
-  const url = process.env.NEXT_PUBLIC_WORDPRESS_API_URL
+  const url = process.env.NEXT_PUBLIC_WORDPRESS_API_URL;
 
   if (!url) {
-    throw new Error('NEXT_PUBLIC_WORDPRESS_API_URL is not set in environment variables')
+    throw new Error(
+      "NEXT_PUBLIC_WORDPRESS_API_URL is not set in environment variables",
+    );
   }
 
   const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
     next: { revalidate, tags },
-  })
+  });
 
   if (!res.ok) {
-    throw new Error(`WordPress API responded with ${res.status}: ${res.statusText}`)
+    throw new Error(
+      `WordPress API responded with ${res.status}: ${res.statusText}`,
+    );
   }
 
-  const json = await res.json()
+  const json = await res.json();
 
   if (json.errors) {
-    console.error('[WP-API Error]:', JSON.stringify(json.errors, null, 2))
-    throw new Error(json.errors[0]?.message ?? 'Failed to fetch from WordPress')
+    console.error("[WP-API Error]:", JSON.stringify(json.errors, null, 2));
+    throw new Error(
+      json.errors[0]?.message ?? "Failed to fetch from WordPress",
+    );
   }
 
-  return json.data as T
+  return json.data as T;
 }
 
 // ─── Image fragment ───────────────────────────────────────────────────────────
@@ -49,12 +55,11 @@ const IMAGE_FIELDS = `
       }
     }
   }
-`
+`;
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export const QUERIES = {
-
   GET_SPORTS_POSTS: `
     query GetSportsData {
       posts(first: 100, where: { orderby: { field: DATE, order: DESC } }) {
@@ -73,37 +78,55 @@ export const QUERIES = {
   `,
 
   GET_ARTICLE_BY_SLUG: `
-    query GetArticleBySlug($slug: ID!) {
-      post(id: $slug, idType: SLUG) {
-        title content date excerpt slug
-        categories { nodes { name slug } }
-        tags { nodes { name slug count } }
-        ${IMAGE_FIELDS}
-        articleFields {
-          newsData { isHero isBreaking theLede }
-          matchData {
-            homeTeam awayTeam finalScore
-            competition matchDatetime venue matchStatus
-          }
-          articleCategoryType
-          readingTime
-          featuredVideo
-          isHeroSlider
-          relatedArticles {
-            nodes {
-              ... on Post { title slug }
+  query GetArticleBySlug($slug: ID!) {
+    post(id: $slug, idType: SLUG) {
+      title 
+      content 
+      date 
+      excerpt 
+      slug
+      categories { nodes { name slug } }
+      tags { nodes { name slug count } }
+      ${IMAGE_FIELDS}
+      articleFields {
+        newsData { isHero isBreaking theLede }
+        matchData {
+          homeTeam awayTeam finalScore competition matchDatetime venue matchStatus
+        }
+        articleCategoryType
+        readingTime
+        featuredVideo
+        isHeroSlider
+        relatedArticles {
+          nodes {
+            ... on Post {
+              title
+              slug
+              featuredImage {
+                node {
+                  sourceUrl
+                  altText
+                }
+              }
+              categories {
+                nodes {
+                  name
+                  slug
+                }
+              }
             }
           }
         }
-        author {
-          node {
-            name slug description
-            avatar { url }
-          }
+      }
+      author {
+        node {
+          name slug description
+          avatar { url }
         }
       }
     }
-  `,
+  }
+`,
 
   GET_CATEGORY_ARCHIVE: `
     query GetCategoryArchive($category: String!, $first: Int!, $after: String) {
@@ -208,4 +231,4 @@ export const QUERIES = {
       }
     }
   `,
-}
+};
