@@ -401,43 +401,8 @@ export default function SportsHero({
 
   if (!posts.length) return null;
 
-  const NAV_TABS = categoryTitle
-    ? [{ label: categoryTitle, slug: categorySlug ?? "" }]
-    : [
-        { label: "Sports", slug: "" },
-        { label: "Soccer", slug: "football" },
-        { label: "Premier League", slug: "premier-league" },
-        { label: "Champions League", slug: "champions-league" },
-        { label: "La Liga", slug: "la-liga" },
-        { label: "Europa League", slug: "europa-league" },
-        { label: "Athletics", slug: "athletics" },
-        { label: "Rugby", slug: "rugby" },
-        { label: "Cricket", slug: "cricket" },
-      ];
-
   return (
     <section className="w-full bg-white border-b border-gray-200">
-      {/* ── Nav tabs ─────────────────────────────────────────────────────── */}
-      <div className="border-b border-gray-200">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-          <div className="flex items-center overflow-x-auto scrollbar-none">
-            {NAV_TABS.map((tab, i) => (
-              <Link
-                key={tab.slug}
-                href={tab.slug ? `/${tab.slug}` : "/"}
-                className={`flex-shrink-0 px-4 py-2.5 text-[13px] whitespace-nowrap transition-colors border-b-2 ${
-                  i === 0
-                    ? "font-bold text-[var(--accent)] border-[var(--accent)]"
-                    : "font-medium text-gray-500 hover:text-gray-900 border-transparent hover:border-gray-300"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* ── Content ──────────────────────────────────────────────────────── */}
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-4 flex flex-col gap-4">
         {/* ── TOP ROW ──────────────────────────────────────────────────── */}

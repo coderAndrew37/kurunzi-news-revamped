@@ -1,6 +1,9 @@
-"use client";
-
 // app/_components/wordpress/WPNavbar.tsx
+// Single-row navbar: logo left · categories center · search+action right.
+// Mirrors People Daily's layout exactly.
+// Hide-on-scroll-down, show-on-scroll-up.
+
+"use client";
 
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -13,12 +16,6 @@ interface Category {
   title: string;
 }
 
-// useLayoutEffect is correct here: it fires synchronously after DOM mutations,
-// before paint, which is exactly when we want to close menus after navigation.
-// On the server React skips it silently, so no SSR mismatch warning.
-// We avoid the "setState in effect body" lint error because the condition
-// `prevPathname.current !== pathname` means setState is never called on mount —
-// only when the route genuinely changes.
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -28,284 +25,220 @@ export default function Navbar({
   categories?: Category[];
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [hidden, setHidden] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-
+  const [hidden, setHidden] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const lastScrollY = useRef(0);
   const prevPathname = useRef(pathname);
 
+  // Close menu + search on route change
   useIsomorphicLayoutEffect(() => {
     if (prevPathname.current !== pathname) {
       prevPathname.current = pathname;
-      setOpen(false);
+      setMenuOpen(false);
       setSearchOpen(false);
     }
   }, [pathname]);
 
+  // Hide on scroll down, show on scroll up
   useEffect(() => {
     const onScroll = () => {
-      const currentY = window.scrollY;
-      setScrolled(currentY > 8);
-      setHidden(currentY > lastScrollY.current && currentY > 120);
-      lastScrollY.current = currentY;
+      const y = window.scrollY;
+      setScrolled(y > 4);
+      setHidden(y > lastScrollY.current && y > 80);
+      lastScrollY.current = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const today = new Date().toLocaleDateString("en-KE", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-
-  const hasCategories = categories.length > 0;
-
   return (
     <>
-      {/* ── Fullscreen Mobile Search Overlay ─────────────────────────────── */}
+      {/* ── Mobile fullscreen search ─────────────────────────────────────── */}
       {searchOpen && (
         <div
-          className="fixed inset-0 bg-white z-50 md:hidden"
+          className="fixed inset-0 z-50 bg-white flex flex-col md:hidden"
           role="dialog"
           aria-label="Search"
           aria-modal="true"
         >
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-['Barlow_Condensed'] font-bold uppercase tracking-widest text-sm text-[--ink]">
-                Search
-              </h2>
-              <button
-                aria-label="Close search"
-                onClick={() => setSearchOpen(false)}
-                className="p-2 hover:bg-[--paper-warm] rounded transition-colors"
-              >
-                <X size={20} aria-hidden />
-              </button>
-            </div>
+          <div className="flex items-center justify-between px-4 h-16 border-b border-gray-100">
+            <span
+              className="text-xl font-black uppercase tracking-tight"
+              style={{ fontFamily: "var(--font-ui)", color: "var(--ink)" }}
+            >
+              KURUNZI<span className="text-red-600"> SPORTS</span>
+            </span>
+            <button
+              onClick={() => setSearchOpen(false)}
+              className="p-2 text-gray-500 hover:text-gray-900 transition-colors"
+              aria-label="Close search"
+            >
+              <X size={22} />
+            </button>
+          </div>
+          <div className="px-4 pt-6">
             <SearchBar onSubmit={() => setSearchOpen(false)} />
           </div>
         </div>
       )}
 
-      {/*
-        ── Sticky wrapper ────────────────────────────────────────────────────
-        `sticky top-0` stays on the outer element so the layout slot is always
-        reserved. The transform is applied to the inner div one level down —
-        this prevents the browser from collapsing the sticky slot mid-animation,
-        which caused content to jump in the previous version.
-      */}
-      <header className="sticky top-0 z-40 bg-white">
+      {/* ── Sticky shell — always occupies space in layout ───────────────── */}
+      <header className="sticky top-0 z-40">
         <div
           className={[
-            "transition-transform duration-300 ease-in-out",
+            "bg-white transition-transform duration-300 ease-in-out",
+            scrolled ? "shadow-sm" : "",
             hidden ? "-translate-y-full" : "translate-y-0",
           ].join(" ")}
         >
-          {/* ── Main Header ────────────────────────────────────────────────── */}
-          <div className="border-b border-[--rule]">
+          {/* ── Single row ─────────────────────────────────────────────────── */}
+          <div className="border-b border-gray-100">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between h-16 lg:h-20">
-                {/* Logo & Date */}
-                <div className="flex items-center space-x-4 lg:space-x-8">
+              <div className="flex items-center h-16">
+                {/* Logo — left */}
+                <div className="flex-shrink-0 mr-8">
                   <Link href="/" className="group">
-                    <div className="flex flex-col">
-                      <span className="text-2xl lg:text-3xl font-black text-[--ink] group-hover:opacity-90 transition-opacity font-['Barlow_Condensed'] uppercase tracking-tight">
-                        KURUNZI
-                        <span className="text-[#dc2626]"> SPORTS</span>
-                      </span>
-                      <span className="text-xs text-[--ink-muted] font-['Barlow_Condensed'] tracking-wide mt-0.5">
-                        {today}
-                      </span>
-                    </div>
+                    <span
+                      className="text-2xl font-black uppercase tracking-tight group-hover:opacity-80 transition-opacity"
+                      style={{
+                        fontFamily: "var(--font-ui)",
+                        color: "var(--ink)",
+                      }}
+                    >
+                      KURUNZI
+                      <span className="text-red-600"> SPORTS</span>
+                    </span>
                   </Link>
-
-                  <div
-                    className="hidden lg:block h-6 w-px bg-[--rule]"
-                    aria-hidden
-                  />
-
-                  <span className="hidden lg:block text-sm text-[--ink-muted] font-['Source_Serif_4'] italic">
-                    Independent · Trusted · Timely
-                  </span>
                 </div>
 
-                {/* Desktop Search & Actions */}
-                <div className="hidden lg:flex items-center space-x-6">
-                  <div className="w-72">
+                {/* Categories — center (desktop) */}
+                <nav
+                  aria-label="Main navigation"
+                  className="hidden lg:flex items-center flex-1 gap-0"
+                >
+                  {categories.map((cat) => {
+                    const active =
+                      pathname === `/${cat.slug}` ||
+                      pathname.startsWith(`/${cat.slug}/`);
+                    return (
+                      <Link
+                        key={cat.slug}
+                        href={`/${cat.slug}`}
+                        aria-current={
+                          pathname === `/${cat.slug}` ? "page" : undefined
+                        }
+                        className={[
+                          "relative px-4 py-[1.125rem] text-[13px] font-semibold uppercase tracking-wide transition-colors whitespace-nowrap",
+                          active
+                            ? "text-gray-900"
+                            : "text-gray-500 hover:text-gray-900",
+                        ].join(" ")}
+                        style={{ fontFamily: "var(--font-ui)" }}
+                      >
+                        {cat.title}
+                        {/* Active underline */}
+                        {active && (
+                          <span
+                            className="absolute inset-x-0 bottom-0 h-[2px] bg-red-600"
+                            aria-hidden
+                          />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                {/* Right actions — desktop */}
+                <div className="hidden lg:flex items-center gap-3 ml-auto flex-shrink-0">
+                  {/* Pill search input */}
+                  <div className="w-52">
                     <SearchBar />
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <Link
-                      href="/subscribe"
-                      className="px-5 py-2 bg-[#dc2626] text-white text-sm font-bold uppercase tracking-wider hover:bg-red-700 transition-colors font-['Barlow_Condensed']"
-                    >
-                      Subscribe
-                    </Link>
-                    <Link
-                      href="/login"
-                      className="text-[--ink-soft] hover:text-[--ink] text-sm font-medium font-['Barlow_Condensed']"
-                    >
-                      Sign In
-                    </Link>
-                  </div>
+                  {/* ePaper / CTA button */}
+                  <Link
+                    href="/subscribe"
+                    className="px-5 py-2 rounded-full text-white text-[13px] font-bold uppercase tracking-wide transition-colors hover:opacity-90"
+                    style={{
+                      background: "var(--accent)",
+                      fontFamily: "var(--font-ui)",
+                    }}
+                  >
+                    Subscribe
+                  </Link>
                 </div>
 
-                {/* Mobile Actions */}
-                <div className="flex items-center lg:hidden space-x-2">
+                {/* Right actions — mobile */}
+                <div className="flex items-center gap-1 ml-auto lg:hidden">
                   <button
                     onClick={() => setSearchOpen(true)}
-                    className="p-2 text-[--ink-soft] hover:text-[--ink] transition-colors"
-                    aria-label="Open search"
+                    className="p-2 text-gray-500 hover:text-gray-900 transition-colors"
+                    aria-label="Search"
                   >
-                    <Search size={20} aria-hidden />
+                    <Search size={20} />
                   </button>
-                  {hasCategories && (
-                    <button
-                      onClick={() => setOpen((v) => !v)}
-                      className="p-2 text-[--ink-soft] hover:text-[--ink] transition-colors"
-                      aria-label={open ? "Close menu" : "Open menu"}
-                      aria-expanded={open}
-                      aria-controls="mobile-menu"
-                    >
-                      {open ? (
-                        <X size={24} aria-hidden />
-                      ) : (
-                        <Menu size={24} aria-hidden />
-                      )}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setMenuOpen((v) => !v)}
+                    className="p-2 text-gray-500 hover:text-gray-900 transition-colors"
+                    aria-label={menuOpen ? "Close menu" : "Open menu"}
+                    aria-expanded={menuOpen}
+                    aria-controls="mobile-nav"
+                  >
+                    {menuOpen ? <X size={22} /> : <Menu size={22} />}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ── Category Nav Bar ───────────────────────────────────────────── */}
-          <nav
-            aria-label="Site categories"
+          {/* ── Mobile menu ────────────────────────────────────────────────── */}
+          <div
+            id="mobile-nav"
             className={[
-              "bg-white border-b border-[--rule] transition-shadow",
-              scrolled ? "shadow-sm" : "",
+              "lg:hidden bg-white border-b border-gray-100 overflow-hidden transition-all duration-300",
+              menuOpen ? "max-h-[480px]" : "max-h-0",
             ].join(" ")}
           >
-            <div className="max-w-7xl mx-auto">
-              <div className="flex">
+            <nav aria-label="Mobile navigation" className="px-4 py-4 space-y-1">
+              {categories.map((cat) => {
+                const active =
+                  pathname === `/${cat.slug}` ||
+                  pathname.startsWith(`/${cat.slug}/`);
+                return (
+                  <Link
+                    key={cat.slug}
+                    href={`/${cat.slug}`}
+                    className={[
+                      "flex items-center px-3 py-3 rounded text-[13px] font-semibold uppercase tracking-wide transition-colors",
+                      active
+                        ? "bg-red-50 text-red-600"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                    ].join(" ")}
+                    style={{ fontFamily: "var(--font-ui)" }}
+                  >
+                    {active && (
+                      <span className="w-1 h-1 rounded-full bg-red-600 mr-2.5 flex-shrink-0" />
+                    )}
+                    {cat.title}
+                  </Link>
+                );
+              })}
+
+              <div className="pt-3 mt-3 border-t border-gray-100">
                 <Link
-                  href="/"
-                  aria-current={pathname === "/" ? "page" : undefined}
-                  className={[
-                    "relative px-6 py-3.5 text-sm font-bold uppercase tracking-wider transition-colors font-['Barlow_Condensed']",
-                    pathname === "/"
-                      ? "text-[#dc2626]"
-                      : "text-[--ink-soft] hover:text-[#dc2626]",
-                  ].join(" ")}
+                  href="/subscribe"
+                  className="block w-full text-center py-3 rounded-full text-white text-[13px] font-bold uppercase tracking-wide"
+                  style={{
+                    background: "var(--accent)",
+                    fontFamily: "var(--font-ui)",
+                  }}
                 >
-                  Home
-                  {pathname === "/" && (
-                    <span
-                      className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#dc2626]"
-                      aria-hidden
-                    />
-                  )}
+                  Subscribe
                 </Link>
-
-                {hasCategories && (
-                  <div className="hidden lg:flex items-center">
-                    {categories.map((cat) => {
-                      const active =
-                        pathname === `/${cat.slug}` ||
-                        pathname.startsWith(`/${cat.slug}/`);
-                      return (
-                        <Link
-                          key={cat.slug}
-                          href={`/${cat.slug}`}
-                          aria-current={
-                            pathname === `/${cat.slug}` ? "page" : undefined
-                          }
-                          className={[
-                            "relative px-5 py-3.5 text-sm uppercase tracking-wide transition-colors border-l border-[--rule] font-['Barlow_Condensed']",
-                            active
-                              ? "text-[#dc2626] font-bold"
-                              : "text-[--ink-soft] hover:text-[#dc2626] font-semibold",
-                          ].join(" ")}
-                        >
-                          {cat.title}
-                          {active && (
-                            <span
-                              className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#dc2626]"
-                              aria-hidden
-                            />
-                          )}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
-            </div>
-
-            {/* ── Mobile Menu ──────────────────────────────────────────────── */}
-            {hasCategories && (
-              <div
-                id="mobile-menu"
-                className={[
-                  "lg:hidden overflow-hidden transition-all duration-300 ease-in-out bg-white",
-                  open ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0",
-                ].join(" ")}
-              >
-                <div className="px-4 py-3 space-y-1 border-t border-[--rule]">
-                  <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-[--ink-muted] font-['Barlow_Condensed']">
-                    Categories
-                  </p>
-                  {categories.map((cat) => {
-                    const active = pathname === `/${cat.slug}`;
-                    return (
-                      <Link
-                        key={cat.slug}
-                        href={`/${cat.slug}`}
-                        aria-current={active ? "page" : undefined}
-                        className={[
-                          "block px-3 py-3 text-sm font-semibold uppercase tracking-wide transition-colors rounded font-['Barlow_Condensed']",
-                          active
-                            ? "bg-red-50 text-[#dc2626]"
-                            : "text-[--ink-soft] hover:bg-[--paper-warm] hover:text-[#dc2626]",
-                        ].join(" ")}
-                      >
-                        {cat.title}
-                      </Link>
-                    );
-                  })}
-
-                  <div className="pt-4 mt-4 border-t border-[--rule] space-y-2">
-                    <Link
-                      href="/subscribe"
-                      className="block px-3 py-3 bg-[#dc2626] text-white text-sm font-bold uppercase tracking-wider text-center rounded hover:bg-red-700 transition-colors font-['Barlow_Condensed']"
-                    >
-                      Subscribe Now
-                    </Link>
-                    <div className="flex space-x-4 px-3">
-                      <Link
-                        href="/about"
-                        className="text-sm text-[--ink-muted] hover:text-[--ink] font-medium font-['Barlow_Condensed']"
-                      >
-                        About
-                      </Link>
-                      <Link
-                        href="/contact"
-                        className="text-sm text-[--ink-muted] hover:text-[--ink] font-medium font-['Barlow_Condensed']"
-                      >
-                        Contact
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </nav>
+            </nav>
+          </div>
         </div>
       </header>
     </>
