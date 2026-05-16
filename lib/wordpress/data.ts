@@ -48,6 +48,12 @@ interface WPUserNode {
   };
 }
 
+interface WPCategoryWithMeta {
+  name: string;
+  slug: string;
+  count: number;
+  posts: { nodes: Array<{ date: string }> };
+}
 // ─── Posts ────────────────────────────────────────────────────────────────────
 
 export async function getSportsPosts(): Promise<SportsPost[]> {
@@ -169,12 +175,29 @@ export async function getAuthorProfile(
 
 export async function getNavCategories(): Promise<NavCategory[]> {
   const data = await fetchAPI<{
-    categories: { nodes: Array<{ name: string; slug: string }> };
+    categories: { nodes: WPCategoryWithMeta[] };
   }>(QUERIES.GET_NAV_CATEGORIES, {}, 3600, ["navigation"]);
-  return (data.categories?.nodes ?? []).map((cat) => ({
-    title: cat.name,
-    slug: cat.slug,
-  }));
+
+  const now = Date.now();
+  const DAY = 86_400_000;
+
+  return (data.categories?.nodes ?? [])
+    .map((cat) => {
+      const latestDate = cat.posts?.nodes?.[0]?.date;
+      const ageMs = latestDate
+        ? now - new Date(latestDate).getTime()
+        : Infinity;
+
+      // Recency bonus: the fresher the latest article, the higher the score
+      const recencyBonus = ageMs < 7 * DAY ? 50 : ageMs < 30 * DAY ? 20 : 0;
+
+      const score = (cat.count ?? 0) + recencyBonus;
+
+      return { title: cat.name, slug: cat.slug, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(({ title, slug }) => ({ title, slug }));
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────

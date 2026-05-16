@@ -92,201 +92,221 @@ export default function Navbar({
         </div>
       )}
 
-      <header
-        className={[
-          "sticky top-0 z-40 transition-transform duration-300 bg-white",
-          hidden ? "-translate-y-full" : "translate-y-0",
-        ].join(" ")}
-      >
-        {/* ── Main Header ──────────────────────────────────────────────────── */}
-        <div className="border-b border-[--rule]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16 lg:h-20">
+      {/*
+        ── Sticky wrapper ────────────────────────────────────────────────────
+        `sticky top-0` stays on the outer element so the layout slot is always
+        reserved. The transform is applied to the inner div one level down —
+        this prevents the browser from collapsing the sticky slot mid-animation,
+        which caused content to jump in the previous version.
+      */}
+      <header className="sticky top-0 z-40 bg-white">
+        <div
+          className={[
+            "transition-transform duration-300 ease-in-out",
+            hidden ? "-translate-y-full" : "translate-y-0",
+          ].join(" ")}
+        >
+          {/* ── Main Header ────────────────────────────────────────────────── */}
+          <div className="border-b border-[--rule]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16 lg:h-20">
+                {/* Logo & Date */}
+                <div className="flex items-center space-x-4 lg:space-x-8">
+                  <Link href="/" className="group">
+                    <div className="flex flex-col">
+                      <span className="text-2xl lg:text-3xl font-black text-[--ink] group-hover:opacity-90 transition-opacity font-['Barlow_Condensed'] uppercase tracking-tight">
+                        KURUNZI
+                        <span className="text-[#dc2626]"> SPORTS</span>
+                      </span>
+                      <span className="text-xs text-[--ink-muted] font-['Barlow_Condensed'] tracking-wide mt-0.5">
+                        {today}
+                      </span>
+                    </div>
+                  </Link>
 
-              {/* Logo & Date */}
-              <div className="flex items-center space-x-4 lg:space-x-8">
-                <Link href="/" className="group">
-                  <div className="flex flex-col">
-                    <span className="text-2xl lg:text-3xl font-black text-[--ink] group-hover:opacity-90 transition-opacity font-['Barlow_Condensed'] uppercase tracking-tight">
-                      KURUNZI
-                      <span className="text-[#dc2626]"> SPORTS</span>
-                    </span>
-                    <span className="text-xs text-[--ink-muted] font-['Barlow_Condensed'] tracking-wide mt-0.5">
-                      {today}
-                    </span>
+                  <div
+                    className="hidden lg:block h-6 w-px bg-[--rule]"
+                    aria-hidden
+                  />
+
+                  <span className="hidden lg:block text-sm text-[--ink-muted] font-['Source_Serif_4'] italic">
+                    Independent · Trusted · Timely
+                  </span>
+                </div>
+
+                {/* Desktop Search & Actions */}
+                <div className="hidden lg:flex items-center space-x-6">
+                  <div className="w-72">
+                    <SearchBar />
                   </div>
-                </Link>
-
-                <div className="hidden lg:block h-6 w-px bg-[--rule]" aria-hidden />
-
-                <span className="hidden lg:block text-sm text-[--ink-muted] font-['Source_Serif_4'] italic">
-                  Independent · Trusted · Timely
-                </span>
-              </div>
-
-              {/* Desktop Search & Actions */}
-              <div className="hidden lg:flex items-center space-x-6">
-                <div className="w-72">
-                  <SearchBar />
+                  <div className="flex items-center space-x-4">
+                    <Link
+                      href="/subscribe"
+                      className="px-5 py-2 bg-[#dc2626] text-white text-sm font-bold uppercase tracking-wider hover:bg-red-700 transition-colors font-['Barlow_Condensed']"
+                    >
+                      Subscribe
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="text-[--ink-soft] hover:text-[--ink] text-sm font-medium font-['Barlow_Condensed']"
+                    >
+                      Sign In
+                    </Link>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <Link
-                    href="/subscribe"
-                    className="px-5 py-2 bg-[#dc2626] text-white text-sm font-bold uppercase tracking-wider hover:bg-red-700 transition-colors font-['Barlow_Condensed']"
-                  >
-                    Subscribe
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="text-[--ink-soft] hover:text-[--ink] text-sm font-medium font-['Barlow_Condensed']"
-                  >
-                    Sign In
-                  </Link>
-                </div>
-              </div>
 
-              {/* Mobile Actions */}
-              <div className="flex items-center lg:hidden space-x-2">
-                <button
-                  onClick={() => setSearchOpen(true)}
-                  className="p-2 text-[--ink-soft] hover:text-[--ink] transition-colors"
-                  aria-label="Open search"
-                >
-                  <Search size={20} aria-hidden />
-                </button>
-                {hasCategories && (
+                {/* Mobile Actions */}
+                <div className="flex items-center lg:hidden space-x-2">
                   <button
-                    onClick={() => setOpen((v) => !v)}
+                    onClick={() => setSearchOpen(true)}
                     className="p-2 text-[--ink-soft] hover:text-[--ink] transition-colors"
-                    aria-label={open ? "Close menu" : "Open menu"}
-                    aria-expanded={open}
-                    aria-controls="mobile-menu"
+                    aria-label="Open search"
                   >
-                    {open ? <X size={24} aria-hidden /> : <Menu size={24} aria-hidden />}
+                    <Search size={20} aria-hidden />
                   </button>
-                )}
+                  {hasCategories && (
+                    <button
+                      onClick={() => setOpen((v) => !v)}
+                      className="p-2 text-[--ink-soft] hover:text-[--ink] transition-colors"
+                      aria-label={open ? "Close menu" : "Open menu"}
+                      aria-expanded={open}
+                      aria-controls="mobile-menu"
+                    >
+                      {open ? (
+                        <X size={24} aria-hidden />
+                      ) : (
+                        <Menu size={24} aria-hidden />
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── Category Nav Bar ─────────────────────────────────────────────── */}
-        <nav
-          aria-label="Site categories"
-          className={[
-            "bg-white border-b border-[--rule] transition-shadow",
-            scrolled ? "shadow-sm" : "",
-          ].join(" ")}
-        >
-          <div className="max-w-7xl mx-auto">
-            <div className="flex">
-              <Link
-                href="/"
-                aria-current={pathname === "/" ? "page" : undefined}
+          {/* ── Category Nav Bar ───────────────────────────────────────────── */}
+          <nav
+            aria-label="Site categories"
+            className={[
+              "bg-white border-b border-[--rule] transition-shadow",
+              scrolled ? "shadow-sm" : "",
+            ].join(" ")}
+          >
+            <div className="max-w-7xl mx-auto">
+              <div className="flex">
+                <Link
+                  href="/"
+                  aria-current={pathname === "/" ? "page" : undefined}
+                  className={[
+                    "relative px-6 py-3.5 text-sm font-bold uppercase tracking-wider transition-colors font-['Barlow_Condensed']",
+                    pathname === "/"
+                      ? "text-[#dc2626]"
+                      : "text-[--ink-soft] hover:text-[#dc2626]",
+                  ].join(" ")}
+                >
+                  Home
+                  {pathname === "/" && (
+                    <span
+                      className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#dc2626]"
+                      aria-hidden
+                    />
+                  )}
+                </Link>
+
+                {hasCategories && (
+                  <div className="hidden lg:flex items-center">
+                    {categories.map((cat) => {
+                      const active =
+                        pathname === `/${cat.slug}` ||
+                        pathname.startsWith(`/${cat.slug}/`);
+                      return (
+                        <Link
+                          key={cat.slug}
+                          href={`/${cat.slug}`}
+                          aria-current={
+                            pathname === `/${cat.slug}` ? "page" : undefined
+                          }
+                          className={[
+                            "relative px-5 py-3.5 text-sm uppercase tracking-wide transition-colors border-l border-[--rule] font-['Barlow_Condensed']",
+                            active
+                              ? "text-[#dc2626] font-bold"
+                              : "text-[--ink-soft] hover:text-[#dc2626] font-semibold",
+                          ].join(" ")}
+                        >
+                          {cat.title}
+                          {active && (
+                            <span
+                              className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#dc2626]"
+                              aria-hidden
+                            />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Mobile Menu ──────────────────────────────────────────────── */}
+            {hasCategories && (
+              <div
+                id="mobile-menu"
                 className={[
-                  "relative px-6 py-3.5 text-sm font-bold uppercase tracking-wider transition-colors font-['Barlow_Condensed']",
-                  pathname === "/"
-                    ? "text-[#dc2626]"
-                    : "text-[--ink-soft] hover:text-[#dc2626]",
+                  "lg:hidden overflow-hidden transition-all duration-300 ease-in-out bg-white",
+                  open ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0",
                 ].join(" ")}
               >
-                Home
-                {pathname === "/" && (
-                  <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#dc2626]" aria-hidden />
-                )}
-              </Link>
-
-              {hasCategories && (
-                <div className="hidden lg:flex items-center">
+                <div className="px-4 py-3 space-y-1 border-t border-[--rule]">
+                  <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-[--ink-muted] font-['Barlow_Condensed']">
+                    Categories
+                  </p>
                   {categories.map((cat) => {
-                    const active =
-                      pathname === `/${cat.slug}` ||
-                      pathname.startsWith(`/${cat.slug}/`);
+                    const active = pathname === `/${cat.slug}`;
                     return (
                       <Link
                         key={cat.slug}
                         href={`/${cat.slug}`}
-                        aria-current={pathname === `/${cat.slug}` ? "page" : undefined}
+                        aria-current={active ? "page" : undefined}
                         className={[
-                          "relative px-5 py-3.5 text-sm uppercase tracking-wide transition-colors border-l border-[--rule] font-['Barlow_Condensed']",
+                          "block px-3 py-3 text-sm font-semibold uppercase tracking-wide transition-colors rounded font-['Barlow_Condensed']",
                           active
-                            ? "text-[#dc2626] font-bold"
-                            : "text-[--ink-soft] hover:text-[#dc2626] font-semibold",
+                            ? "bg-red-50 text-[#dc2626]"
+                            : "text-[--ink-soft] hover:bg-[--paper-warm] hover:text-[#dc2626]",
                         ].join(" ")}
                       >
                         {cat.title}
-                        {active && (
-                          <span
-                            className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#dc2626]"
-                            aria-hidden
-                          />
-                        )}
                       </Link>
                     );
                   })}
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* ── Mobile Menu ────────────────────────────────────────────────── */}
-          {hasCategories && (
-            <div
-              id="mobile-menu"
-              className={[
-                "lg:hidden overflow-hidden transition-all duration-300 ease-in-out bg-white",
-                open ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0",
-              ].join(" ")}
-            >
-              <div className="px-4 py-3 space-y-1 border-t border-[--rule]">
-                <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-[--ink-muted] font-['Barlow_Condensed']">
-                  Categories
-                </p>
-                {categories.map((cat) => {
-                  const active = pathname === `/${cat.slug}`;
-                  return (
+                  <div className="pt-4 mt-4 border-t border-[--rule] space-y-2">
                     <Link
-                      key={cat.slug}
-                      href={`/${cat.slug}`}
-                      aria-current={active ? "page" : undefined}
-                      className={[
-                        "block px-3 py-3 text-sm font-semibold uppercase tracking-wide transition-colors rounded font-['Barlow_Condensed']",
-                        active
-                          ? "bg-red-50 text-[#dc2626]"
-                          : "text-[--ink-soft] hover:bg-[--paper-warm] hover:text-[#dc2626]",
-                      ].join(" ")}
+                      href="/subscribe"
+                      className="block px-3 py-3 bg-[#dc2626] text-white text-sm font-bold uppercase tracking-wider text-center rounded hover:bg-red-700 transition-colors font-['Barlow_Condensed']"
                     >
-                      {cat.title}
+                      Subscribe Now
                     </Link>
-                  );
-                })}
-
-                <div className="pt-4 mt-4 border-t border-[--rule] space-y-2">
-                  <Link
-                    href="/subscribe"
-                    className="block px-3 py-3 bg-[#dc2626] text-white text-sm font-bold uppercase tracking-wider text-center rounded hover:bg-red-700 transition-colors font-['Barlow_Condensed']"
-                  >
-                    Subscribe Now
-                  </Link>
-                  <div className="flex space-x-4 px-3">
-                    <Link
-                      href="/about"
-                      className="text-sm text-[--ink-muted] hover:text-[--ink] font-medium font-['Barlow_Condensed']"
-                    >
-                      About
-                    </Link>
-                    <Link
-                      href="/contact"
-                      className="text-sm text-[--ink-muted] hover:text-[--ink] font-medium font-['Barlow_Condensed']"
-                    >
-                      Contact
-                    </Link>
+                    <div className="flex space-x-4 px-3">
+                      <Link
+                        href="/about"
+                        className="text-sm text-[--ink-muted] hover:text-[--ink] font-medium font-['Barlow_Condensed']"
+                      >
+                        About
+                      </Link>
+                      <Link
+                        href="/contact"
+                        className="text-sm text-[--ink-muted] hover:text-[--ink] font-medium font-['Barlow_Condensed']"
+                      >
+                        Contact
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-        </nav>
+            )}
+          </nav>
+        </div>
       </header>
     </>
   );

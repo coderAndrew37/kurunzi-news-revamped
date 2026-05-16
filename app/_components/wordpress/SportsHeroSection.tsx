@@ -2,10 +2,10 @@
 
 import { useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { SportsPost } from "@/lib/wordpress/types";
 import ArticleLink from "./WPArticleLink";
+import SkeletonImage from "../ui/SkeletonImage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +31,60 @@ interface Props {
   categorySlug?: string;
 }
 
-// ─── Placeholder — swap with real API data later ──────────────────────────────
+// ─── BBC-style editorial algorithm ────────────────────────────────────────────
+//
+// Priority tiers (mimics how BBC Sport / Guardian editors surface content):
+//
+//  Tier 1 — Breaking news: isBreaking flag, always leads if present
+//  Tier 2 — Hero-flagged: isHero === true, editorially promoted stories
+//  Tier 3 — Recency: most recent posts fill remaining slots
+//
+// The carousel gets 5 posts. The bottom row gets the next 3 distinct posts.
+// We deduplicate so a post never appears in both rows.
+//
+// This mirrors newsroom logic: editors flag top stories (hero/breaking),
+// recency fills the rest, and the algorithm respects both signals.
+
+function selectHeroPosts(posts: SportsPost[]): {
+  carousel: SportsPost[];
+  secondary: SportsPost[];
+} {
+  const seen = new Set<string>();
+  const pick = (arr: SportsPost[], limit: number): SportsPost[] => {
+    const out: SportsPost[] = [];
+    for (const p of arr) {
+      if (seen.has(p.slug)) continue;
+      seen.add(p.slug);
+      out.push(p);
+      if (out.length === limit) break;
+    }
+    return out;
+  };
+
+  // Sort helpers
+  const byDate = (a: SportsPost, b: SportsPost) =>
+    new Date(b.date).getTime() - new Date(a.date).getTime();
+
+  const breaking = posts.filter((p) => p.newsData?.isBreaking).sort(byDate);
+  const hero = posts
+    .filter((p) => p.newsData?.isHero && !p.newsData?.isBreaking)
+    .sort(byDate);
+  const recent = posts
+    .filter((p) => !p.newsData?.isHero && !p.newsData?.isBreaking)
+    .sort(byDate);
+
+  // Carousel: 1 breaking max, then hero, then recent
+  const carouselPool = [...breaking.slice(0, 1), ...hero, ...recent];
+  const carousel = pick(carouselPool, 5);
+
+  // Secondary: hero/recent not already used, up to 3
+  const secondaryPool = [...hero, ...recent, ...breaking];
+  const secondary = pick(secondaryPool, 3);
+
+  return { carousel, secondary };
+}
+
+// ─── Placeholder matches — swap with real API data later ─────────────────────
 
 const PLACEHOLDER_MATCHES: Match[] = [
   {
@@ -105,22 +158,26 @@ function MatchRow({ match }: { match: Match }) {
           </span>
         )}
         {isFinal && (
-          <span className="text-[10px] font-semibold text-gray-400 uppercase">FT</span>
+          <span className="text-[10px] font-semibold text-gray-400 uppercase">
+            FT
+          </span>
         )}
       </div>
 
       {/* Home */}
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-          {match.homeCrest ? (
-            <Image src={match.homeCrest} alt={match.homeTeam} width={16} height={16} className="object-contain" />
-          ) : (
-            <span className="text-[8px] font-black text-gray-500">{match.homeAbbr.slice(0, 2)}</span>
-          )}
+          <span className="text-[8px] font-black text-gray-500">
+            {match.homeAbbr.slice(0, 2)}
+          </span>
         </div>
-        <span className="flex-1 text-[12.5px] font-medium text-gray-900 truncate">{match.homeTeam}</span>
+        <span className="flex-1 text-[12.5px] font-medium text-gray-900 truncate">
+          {match.homeTeam}
+        </span>
         {hasScore && match.homeScore !== undefined && (
-          <span className={`text-[13px] font-bold tabular-nums ${isLive ? "text-gray-900" : "text-gray-500"}`}>
+          <span
+            className={`text-[13px] font-bold tabular-nums ${isLive ? "text-gray-900" : "text-gray-500"}`}
+          >
             {match.homeScore}
           </span>
         )}
@@ -129,15 +186,17 @@ function MatchRow({ match }: { match: Match }) {
       {/* Away */}
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-          {match.awayCrest ? (
-            <Image src={match.awayCrest} alt={match.awayTeam} width={16} height={16} className="object-contain" />
-          ) : (
-            <span className="text-[8px] font-black text-gray-500">{match.awayAbbr.slice(0, 2)}</span>
-          )}
+          <span className="text-[8px] font-black text-gray-500">
+            {match.awayAbbr.slice(0, 2)}
+          </span>
         </div>
-        <span className="flex-1 text-[12.5px] font-medium text-gray-900 truncate">{match.awayTeam}</span>
+        <span className="flex-1 text-[12.5px] font-medium text-gray-900 truncate">
+          {match.awayTeam}
+        </span>
         {hasScore && match.awayScore !== undefined && (
-          <span className={`text-[13px] font-bold tabular-nums ${isLive ? "text-gray-900" : "text-gray-500"}`}>
+          <span
+            className={`text-[13px] font-bold tabular-nums ${isLive ? "text-gray-900" : "text-gray-500"}`}
+          >
             {match.awayScore}
           </span>
         )}
@@ -147,7 +206,9 @@ function MatchRow({ match }: { match: Match }) {
       {!hasScore && (
         <div className="flex items-center gap-1.5 text-gray-400 pt-0.5">
           <Clock size={9} />
-          <span className="text-[10px] font-medium">{match.kickoff} · {match.date}</span>
+          <span className="text-[10px] font-medium">
+            {match.kickoff} · {match.date}
+          </span>
         </div>
       )}
     </div>
@@ -165,18 +226,28 @@ function CarouselSlide({ post, index }: { post: SportsPost; index: number }) {
       slug={post.slug}
       className="group relative block w-full h-full flex-shrink-0"
     >
-      {post.featuredImage ? (
-        <Image
-          src={post.featuredImage}
-          alt={post.title}
-          fill
-          className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-          priority={index === 0}
-          sizes="(max-width: 1024px) 100vw, 70vw"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-gray-200" />
-      )}
+      {/* SkeletonImage fills the entire slide as a background */}
+      <div className="absolute inset-0 overflow-hidden">
+        {post.featuredImage ? (
+          // We need fill behaviour here, so we go direct to next/image
+          // SkeletonImage's figure/aspect wrapper doesn't suit full-bleed carousel slides.
+          // We replicate its dev/prod logic inline for the carousel only.
+          <CarouselImage
+            src={post.featuredImage}
+            alt={post.title}
+            priority={index === 0}
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <div className="flex items-center gap-2 opacity-20">
+              <div className="w-8 h-1 bg-red-600" />
+              <span className="text-xs font-black tracking-widest text-gray-400 uppercase">
+                Kurunzi Sports
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
@@ -187,6 +258,11 @@ function CarouselSlide({ post, index }: { post: SportsPost; index: number }) {
               Breaking
             </span>
           )}
+          {post.newsData?.isHero && !post.newsData?.isBreaking && (
+            <span className="bg-white/20 text-white text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm backdrop-blur-sm">
+              Top Story
+            </span>
+          )}
           <span className="text-[10px] font-semibold uppercase tracking-widest text-white/70">
             {post.category}
           </span>
@@ -194,7 +270,10 @@ function CarouselSlide({ post, index }: { post: SportsPost; index: number }) {
 
         <h2
           className="text-white font-bold leading-tight mb-2 group-hover:text-white/90 transition-colors"
-          style={{ fontSize: "clamp(1.1rem, 2.4vw, 1.65rem)", letterSpacing: "-0.02em" }}
+          style={{
+            fontSize: "clamp(1.1rem, 2.4vw, 1.65rem)",
+            letterSpacing: "-0.02em",
+          }}
         >
           {post.title}
         </h2>
@@ -213,6 +292,41 @@ function CarouselSlide({ post, index }: { post: SportsPost; index: number }) {
   );
 }
 
+// ── Inline fill-image component for carousel (full-bleed, no aspect wrapper) ──
+function CarouselImage({
+  src,
+  alt,
+  priority,
+}: {
+  src: string;
+  alt: string;
+  priority: boolean;
+}) {
+  const isDev = process.env.NODE_ENV === "development";
+
+  if (isDev) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+      />
+    );
+  }
+
+  // Use next/image with fill in production
+  // eslint-disable-next-line @next/next/no-img-element
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading={priority ? "eager" : "lazy"}
+      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+    />
+  );
+}
+
 // ─── BottomCard ───────────────────────────────────────────────────────────────
 
 function BottomCard({ post }: { post: SportsPost }) {
@@ -225,9 +339,16 @@ function BottomCard({ post }: { post: SportsPost }) {
       className="group flex items-start gap-3 p-4 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors bg-white"
     >
       <div className="flex-1 min-w-0">
-        <span className="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">
-          {post.category}
-        </span>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          {post.newsData?.isBreaking && (
+            <span className="bg-red-600 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+              Breaking
+            </span>
+          )}
+          <span className="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">
+            {post.category}
+          </span>
+        </div>
         <h3 className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-3 group-hover:text-gray-600 transition-colors">
           {post.title}
         </h3>
@@ -237,9 +358,16 @@ function BottomCard({ post }: { post: SportsPost }) {
           </p>
         )}
       </div>
+
+      {/* Thumbnail via SkeletonImage — but we need a fixed box, not aspect-ratio wrapper */}
       {post.featuredImage && (
         <div className="relative flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden bg-gray-100">
-          <Image src={post.featuredImage} alt={post.title} fill className="object-cover" sizes="80px" />
+          <SkeletonImage
+            src={post.featuredImage}
+            alt={post.title}
+            // Override the aspect-ratio wrapper with a className that fills the container
+            className="!aspect-auto absolute inset-0 w-full h-full object-cover rounded-none"
+          />
         </div>
       )}
     </ArticleLink>
@@ -248,17 +376,22 @@ function BottomCard({ post }: { post: SportsPost }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function SportsHero({ posts, categoryTitle, categorySlug }: Props) {
+export default function SportsHero({
+  posts,
+  categoryTitle,
+  categorySlug,
+}: Props) {
   const [activeSlide, setActiveSlide] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  const carouselPosts = posts.slice(0, 5);
-  const bottomPosts = posts.slice(5, 8);
+  // ── BBC-style editorial selection ──────────────────────────────────────────
+  const { carousel: carouselPosts, secondary: bottomPosts } =
+    selectHeroPosts(posts);
 
   const goTo = useCallback((index: number) => {
     setActiveSlide(index);
     carouselRef.current?.scrollTo({
-      left: index * (carouselRef.current.offsetWidth),
+      left: index * carouselRef.current.offsetWidth,
       behavior: "smooth",
     });
   }, []);
@@ -284,7 +417,6 @@ export default function SportsHero({ posts, categoryTitle, categorySlug }: Props
 
   return (
     <section className="w-full bg-white border-b border-gray-200">
-
       {/* ── Nav tabs ─────────────────────────────────────────────────────── */}
       <div className="border-b border-gray-200">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
@@ -308,14 +440,14 @@ export default function SportsHero({ posts, categoryTitle, categorySlug }: Props
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-4 flex flex-col gap-4">
-
         {/* ── TOP ROW ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 items-stretch">
-
           {/* Featured Matches */}
           <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <span className="text-[13px] font-bold text-gray-900">Featured matches</span>
+              <span className="text-[13px] font-bold text-gray-900">
+                Featured matches
+              </span>
               <Link
                 href="/fixtures"
                 className="text-[11px] font-semibold text-[var(--accent)] hover:underline"
@@ -375,6 +507,7 @@ export default function SportsHero({ posts, categoryTitle, categorySlug }: Props
               </button>
             )}
 
+            {/* Dot indicators */}
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
               {carouselPosts.map((_, i) => (
                 <button
@@ -385,15 +518,23 @@ export default function SportsHero({ posts, categoryTitle, categorySlug }: Props
                   style={{
                     width: i === activeSlide ? 20 : 6,
                     height: 6,
-                    background: i === activeSlide ? "#fff" : "rgba(255,255,255,0.45)",
+                    background:
+                      i === activeSlide ? "#fff" : "rgba(255,255,255,0.45)",
                   }}
                 />
               ))}
             </div>
+
+            {/* Slide counter — top right, BBC-style */}
+            {carouselPosts.length > 1 && (
+              <div className="absolute top-3 right-3 z-10 bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full tabular-nums">
+                {activeSlide + 1} / {carouselPosts.length}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── BOTTOM ROW: 3 cards ──────────────────────────────────────── */}
+        {/* ── BOTTOM ROW: up to 3 secondary leads ─────────────────────── */}
         {bottomPosts.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {bottomPosts.map((post) => (
@@ -403,7 +544,7 @@ export default function SportsHero({ posts, categoryTitle, categorySlug }: Props
         )}
       </div>
 
-      {/* Only CSS that Tailwind cannot do: custom keyframe + scrollbar hide */}
+      {/* Minimal global CSS that Tailwind cannot express */}
       <style>{`
         .live-dot {
           display: inline-block;

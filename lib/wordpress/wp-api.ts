@@ -170,12 +170,24 @@ export const QUERIES = {
   `,
 
   GET_NAV_CATEGORIES: `
-    query GetNavCategories {
-      categories(first: 10, where: { hideEmpty: true, exclude: "1" }) {
-        nodes { name slug }
+  query GetNavCategories {
+    categories(
+      first: 20
+      where: { hideEmpty: true, exclude: "1", orderby: COUNT, order: DESC }
+    ) {
+      nodes {
+        name
+        slug
+        count
+        posts(first: 1, where: { orderby: { field: DATE, order: DESC } }) {
+          nodes {
+            date
+          }
+        }
       }
     }
-  `,
+  }
+`,
 
   SEARCH_ARTICLES: `
     query SearchPosts($query: String!) {
