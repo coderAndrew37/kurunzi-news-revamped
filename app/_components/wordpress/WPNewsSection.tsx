@@ -1,8 +1,10 @@
 // components/NewsSection.tsx
-// Original styling 100% preserved.
-// Only change: viewAllHref and viewAllLabel optional props added.
-// viewAllHref — overrides the default /{slug} for the "View All" button.
-// viewAllLabel — overrides the default "View All" label.
+// Theme locked — red-600 / gray-900 / white palette is the north star.
+// Layout improvement: hero now uses overlay pattern (image + gradient text)
+// so the featured image is taller and more impactful, matching BBC Sport's
+// hero treatment. Sub-features and sidebar are unchanged in structure.
+// viewAllHref / viewAllLabel props fully preserved.
+// Pure Tailwind, server component.
 
 import Link from "next/link";
 import ArticleLink from "@/app/_components/wordpress/WPArticleLink";
@@ -13,12 +15,7 @@ interface NewsSectionProps {
   title: string;
   slug: string;
   posts: SportsPost[];
-  // Optional: override the "View All" destination.
-  // Default: /{slug}
-  // Homepage:      viewAllHref={`/${slug}`}          (same as default, no need to pass)
-  // Category page: viewAllHref={`/${slug}/archive`}
   viewAllHref?: string;
-  // Optional: override the button label. Default: "View All"
   viewAllLabel?: string;
 }
 
@@ -35,92 +32,96 @@ export default function NewsSection({
   const subFeatures = posts.slice(1, 3);
   const sidebarPosts = posts.slice(3, 8);
 
-  // Resolve the href — caller override takes precedence, else default /{slug}
   const resolvedHref = viewAllHref ?? `/${slug}`;
 
   return (
-    <section className="py-16 border-b border-gray-200 last:border-0 bg-white">
+    <section className="py-10 border-b border-gray-200 last:border-0 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Section Header */}
-        <div className="flex items-center justify-between mb-12">
-          <div className="flex items-center space-x-4">
-            <div className="w-2 h-10 bg-red-600" />
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
+        {/* ── Section Header ──────────────────────────────────────────── */}
+        <div className="flex items-center justify-between mb-8 pb-3 border-b-2 border-red-600">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-8 bg-red-600 rounded-sm" />
+            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">
               {title}
             </h2>
           </div>
 
           <Link
             href={resolvedHref}
-            className="hidden lg:flex items-center text-red-600 hover:text-red-700 text-sm font-semibold uppercase tracking-wider transition-colors group"
+            className="hidden lg:flex items-center gap-2 text-red-600 hover:text-gray-900 text-xs font-bold uppercase tracking-wider transition-colors group"
           >
             {viewAllLabel}
             <svg
-              className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform"
+              className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-          {/* Main Content */}
-          <div className="lg:col-span-8 space-y-12">
+          {/* ── Main Content ────────────────────────────────────────────── */}
+          <div className="lg:col-span-8 space-y-8">
 
-            {/* 1. Main Hero Story */}
+            {/* 1. Hero — overlay pattern: image fills frame, text on gradient */}
             <ArticleLink
               categorySlug={mainPost.category?.toLowerCase().replace(/\s+/g, "-") ?? slug}
               slug={mainPost.slug}
               className="group block"
             >
-              <div className="relative overflow-hidden mb-6">
-                <div className="aspect-video w-full bg-gray-100 relative rounded-lg overflow-hidden">
-                  <SkeletonImage
-                    src={mainPost.featuredImage}
-                    alt={mainPost.title}
-                    priority
-                    className="transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
+              <div className="relative overflow-hidden rounded-lg aspect-[16/9] bg-gray-100">
+                {/* Image */}
+                <SkeletonImage
+                  src={mainPost.featuredImage}
+                  alt={mainPost.title}
+                  priority
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+                {/* Category badge */}
                 <div className="absolute top-4 left-4">
-                  <span className="inline-block bg-red-600 text-white text-xs font-bold px-4 py-2 uppercase tracking-wider shadow-md">
+                  <span className="inline-block bg-red-600 text-white text-[11px] font-bold px-3 py-1.5 uppercase tracking-wider">
                     {title}
                   </span>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight group-hover:text-red-600 transition-colors">
-                  {mainPost.title}
-                </h3>
+                {/* Text on overlay */}
+                <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7">
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight mb-2 group-hover:text-red-400 transition-colors">
+                    {mainPost.title}
+                  </h3>
 
-                {mainPost.newsData?.theLede && (
-                  <p className="text-gray-600 text-lg leading-relaxed line-clamp-3">
-                    {mainPost.newsData.theLede}
-                  </p>
-                )}
+                  {mainPost.newsData?.theLede && (
+                    <p className="hidden sm:block text-white/80 text-sm leading-relaxed line-clamp-2 mb-3">
+                      {mainPost.newsData.theLede}
+                    </p>
+                  )}
 
-                <div className="flex items-center text-gray-500 text-sm font-medium">
-                  <span>Kurunzi Reporter</span>
-                  <span className="mx-2">•</span>
-                  <span>
-                    {new Date(mainPost.date).toLocaleDateString("en-KE", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>
+                  <div className="flex items-center text-white/60 text-xs font-medium gap-2">
+                    <span>Kurunzi Reporter</span>
+                    <span>·</span>
+                    <time dateTime={mainPost.date}>
+                      {new Date(mainPost.date).toLocaleDateString("en-KE", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </time>
+                  </div>
                 </div>
               </div>
             </ArticleLink>
 
             {/* 2. Sub-feature Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-200">
               {subFeatures.map((post) => (
                 <ArticleLink
                   key={post.slug}
@@ -128,20 +129,18 @@ export default function NewsSection({
                   slug={post.slug}
                   className="group"
                 >
-                  <div className="relative overflow-hidden mb-4">
-                    <div className="aspect-video w-full bg-gray-100 relative rounded-md overflow-hidden">
-                      <SkeletonImage
-                        src={post.featuredImage}
-                        alt={post.title}
-                        className="transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
+                  <div className="relative overflow-hidden rounded-md aspect-video bg-gray-100 mb-3">
+                    <SkeletonImage
+                      src={post.featuredImage}
+                      alt={post.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center text-[10px] font-bold uppercase tracking-widest text-red-600">
-                      <span>{title}</span>
-                    </div>
-                    <h4 className="text-lg font-bold text-gray-900 leading-snug group-hover:text-red-600 transition-colors line-clamp-3">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">
+                      {title}
+                    </span>
+                    <h4 className="text-base font-bold text-gray-900 leading-snug group-hover:text-red-600 transition-colors line-clamp-3">
                       {post.title}
                     </h4>
                   </div>
@@ -150,64 +149,60 @@ export default function NewsSection({
             </div>
           </div>
 
-          {/* 3. Sidebar List */}
+          {/* ── Sidebar ─────────────────────────────────────────────────── */}
           <aside className="lg:col-span-4">
-            <div className="lg:sticky lg:top-24 space-y-6">
-              <div className="pb-4 border-b-2 border-red-600 w-fit">
-                <h4 className="text-lg font-bold text-gray-900">More in {title}</h4>
+            <div className="lg:sticky lg:top-6 space-y-5">
+              <div className="pb-3 border-b-2 border-red-600">
+                <h4 className="text-base font-bold text-gray-900">More in {title}</h4>
               </div>
 
-              <div className="space-y-6">
+              <ul className="space-y-5">
                 {sidebarPosts.map((post, index) => (
-                  <ArticleLink
-                    key={post.slug}
-                    categorySlug={post.category?.toLowerCase().replace(/\s+/g, "-") ?? slug}
-                    slug={post.slug}
-                    className="group flex gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0"
-                  >
-                    {/* Image */}
-                    <div className="shrink-0 w-20 h-20 relative rounded-md overflow-hidden bg-gray-100">
-                      <SkeletonImage
-                        src={post.featuredImage}
-                        alt={post.title}
-                        className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-red-600 text-white rounded-full">
-                          {index + 1}
-                        </span>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">
-                          {title}
-                        </span>
+                  <li key={post.slug}>
+                    <ArticleLink
+                      categorySlug={post.category?.toLowerCase().replace(/\s+/g, "-") ?? slug}
+                      slug={post.slug}
+                      className="group flex gap-3 pb-5 border-b border-gray-100 last:border-0 last:pb-0"
+                    >
+                      {/* Thumbnail */}
+                      <div className="shrink-0 w-20 h-16 relative rounded overflow-hidden bg-gray-100">
+                        <SkeletonImage
+                          src={post.featuredImage}
+                          alt={post.title}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
                       </div>
 
-                      <h5 className="font-bold text-gray-900 group-hover:text-red-600 transition-colors leading-tight text-[15px] line-clamp-3">
-                        {post.title}
-                      </h5>
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold bg-red-600 text-white rounded-full shrink-0">
+                            {index + 1}
+                          </span>
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-red-600 truncate">
+                            {title}
+                          </span>
+                        </div>
 
-                      {post.newsData?.theLede && (
-                        <p className="text-gray-600 text-sm line-clamp-2 mt-2 hidden md:block">
-                          {post.newsData.theLede}
-                        </p>
-                      )}
-                    </div>
-                  </ArticleLink>
+                        <h5 className="font-bold text-gray-900 group-hover:text-red-600 transition-colors leading-tight text-[13px] line-clamp-3">
+                          {post.title}
+                        </h5>
+                      </div>
+                    </ArticleLink>
+                  </li>
                 ))}
-              </div>
+              </ul>
 
-              {/* "View All" button — uses resolvedHref */}
+              {/* View All CTA */}
               <Link
                 href={resolvedHref}
-                className="block w-full text-center px-6 py-4 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs hover:bg-red-600 transition-colors rounded-md"
+                className="block w-full text-center px-5 py-3 bg-gray-900 text-white font-bold uppercase tracking-wider text-xs hover:bg-red-600 transition-colors rounded"
               >
                 {viewAllLabel} {title}
               </Link>
             </div>
           </aside>
+
         </div>
       </div>
     </section>

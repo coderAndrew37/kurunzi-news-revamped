@@ -1,276 +1,186 @@
 // app/author/[slug]/page.tsx
-// Author profile page.
-// Pagination: ?page=N in the URL. Cursors are stored server-side via btoa/atob
-// so raw WPGraphQL cursors never appear in the public URL.
-// The post list is wrapped in <Suspense> so the author card renders immediately
-// while articles stream in.
+// Author archive — mirrors search and tag page structure.
+// White header (breadcrumb + avatar + name + bio) on gray-50 page background.
+// Cursor-based pagination via WPPagination (variant="tailwind").
+// PD title pattern: first post's title as page <title> on page 1.
 
-import type { Metadata } from 'next'
-import { Suspense } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { notFound } from 'next/navigation'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-
+import WPPostListItem from '@/app/_components/wordpress/WPArchiveListItem'
+import WPPagination from '@/app/_components/wordpress/WPPagination'
 import { getAuthorProfile } from '@/lib/wordpress/data'
-import type { AuthorProfile, SportsPost, PageInfo } from '@/lib/wordpress/types'
-import PostListItem from '@/app/_components/wordpress/WPArchiveListItem'
+import type { AuthorProfile } from '@/lib/wordpress/types'
+import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
 const PER_PAGE = 10
 
-// ─── Metadata ─────────────────────────────────────────────────────────────────
-
-export async function generateMetadata({
-  params,
-}: {
+interface PageProps {
   params: Promise<{ slug: string }>
-}): Promise<Metadata> {
-  const { slug } = await params
-  const { author } = await getAuthorProfile(slug, 1, null)
-
-  if (!author) return { title: 'Author not found — Kurunzi Sports' }
-
-  return {
-    title: `${author.name} — Kurunzi Sports`,
-    description:
-      author.description ??
-      `Read all stories by ${author.name} on Kurunzi Sports.`,
-    openGraph: {
-      title: `${author.name} — Kurunzi Sports`,
-      description:
-        author.description ??
-        `Read all stories by ${author.name} on Kurunzi Sports.`,
-      ...(author.avatar?.url ? { images: [{ url: author.avatar.url }] } : {}),
-    },
-  }
+  searchParams: Promise<{ page?: string }>
 }
 
-// ─── Cursor codec ─────────────────────────────────────────────────────────────
-// Maps page number → WPGraphQL cursor so the URL only shows ?page=2.
-// On the first page, after=null. On subsequent pages, we re-fetch page 1
-// to get its endCursor, then page 2, etc. (WPGraphQL doesn't support
-// offset-based pagination, only cursor-based.)
-//
-// For typical author archives (tens of posts) this is cheap. If you have
-// authors with hundreds of posts, swap to storing cursors in a KV cache.
+// ── Cursor helper ─────────────────────────────────────────────────────────────
+// Maps ?page=N → WPGraphQL cursor. Keeps raw cursors out of the public URL.
 
 async function getCursorForPage(slug: string, page: number): Promise<string | null> {
   if (page <= 1) return null
-
-  // Walk forward one page at a time to collect the cursor for the target page.
   let cursor: string | null = null
   for (let p = 1; p < page; p++) {
     const { pageInfo } = await getAuthorProfile(slug, PER_PAGE, cursor)
-    if (!pageInfo.hasNextPage) return null // requested page doesn't exist
+    if (!pageInfo.hasNextPage) return null
     cursor = pageInfo.endCursor
   }
   return cursor
 }
 
-// ─── Author card ──────────────────────────────────────────────────────────────
+// ── Metadata ──────────────────────────────────────────────────────────────────
+// PD pattern on page 1 when posts exist; neutral title on subsequent pages.
+
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+  const { slug } = await params
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
+
+  const cursor = await getCursorForPage(slug, page)
+  const { author, posts } = await getAuthorProfile(slug, PER_PAGE, cursor)
+
+  if (!author) return { title: 'Author not found — Kurunzi Sports' }
+
+  const title =
+    page === 1 && posts.length > 0
+      ? `${posts[0].title} | Kurunzi Sports`
+      : page > 1 && posts.length > 0
+        ? `${author.name} — Page ${page} | Kurunzi Sports`
+        : `${author.name} | Kurunzi Sports`
+
+  return {
+    title,
+    description: author.description ?? `Read all stories by ${author.name} on Kurunzi Sports.`,
+    openGraph: {
+      title,
+      description: author.description ?? `Read all stories by ${author.name} on Kurunzi Sports.`,
+      ...(author.avatar?.url ? { images: [{ url: author.avatar.url }] } : {}),
+    },
+  }
+}
+
+// ── Author card ───────────────────────────────────────────────────────────────
 
 function AuthorCard({ author }: { author: AuthorProfile }) {
   const initial = author.name.charAt(0).toUpperCase()
 
   return (
-    <section
-      className="flex flex-col md:flex-row items-center gap-8 mb-16 border-b-2 border-[--rule] pb-12"
-      aria-label="Author profile"
-    >
+    <div className="flex items-center gap-5 sm:gap-6">
       {/* Avatar */}
-      <div className="relative w-32 h-32 md:w-44 md:h-44 shrink-0 rounded-full overflow-hidden border-4 border-white shadow-lg bg-[--paper-warm]">
+      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-100 shrink-0 ring-2 ring-gray-100">
         {author.avatar?.url ? (
           <Image
             src={author.avatar.url}
             alt={author.name}
             fill
-            sizes="(max-width: 768px) 128px, 176px"
+            sizes="80px"
             className="object-cover"
             priority
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center bg-[--accent] text-white text-4xl font-black font-['Barlow_Condensed']"
-            aria-hidden
+            className="w-full h-full flex items-center justify-center bg-red-600 text-white text-2xl font-black"
+            aria-hidden="true"
           >
             {initial}
           </div>
         )}
       </div>
 
-      {/* Bio */}
-      <div className="text-center md:text-left flex-1 min-w-0">
-        <p className="font-['Barlow_Condensed'] text-[--accent] font-bold uppercase tracking-[0.2em] text-xs mb-2">
+      {/* Name + bio */}
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 mb-0.5">
           Staff Writer
         </p>
-        <h1 className="font-['Playfair_Display'] font-black text-4xl md:text-5xl uppercase tracking-tighter text-[--ink] mb-3 leading-none">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight leading-tight">
           {author.name}
         </h1>
-        <p className="font-['Source_Serif_4'] text-lg text-[--ink-soft] leading-relaxed max-w-2xl italic">
-          {author.description ?? `${author.name} is a contributor to Kurunzi Sports.`}
-        </p>
+        {author.description && (
+          <p className="mt-1 text-sm text-gray-500 leading-snug line-clamp-2">
+            {author.description}
+          </p>
+        )}
       </div>
-    </section>
-  )
-}
-
-// ─── Post list skeleton (shown during Suspense) ───────────────────────────────
-
-function PostListSkeleton() {
-  return (
-    <div className="flex flex-col divide-y divide-[--rule] animate-pulse" aria-busy aria-label="Loading articles">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="py-6 flex gap-4">
-          <div className="flex-1 space-y-3">
-            <div className="h-3 bg-[--rule] rounded w-1/4" />
-            <div className="h-5 bg-[--rule] rounded w-3/4" />
-            <div className="h-3 bg-[--rule] rounded w-1/2" />
-          </div>
-          <div className="w-24 h-20 bg-[--rule] rounded shrink-0" />
-        </div>
-      ))}
     </div>
   )
 }
 
-// ─── Pagination nav ───────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
-function PaginationNav({
-  slug,
-  page,
-  pageInfo,
-}: {
-  slug: string
-  page: number
-  pageInfo: PageInfo
-}) {
-  const hasPrev = page > 1
-  const hasNext = pageInfo.hasNextPage
-
-  if (!hasPrev && !hasNext) return null
-
-  return (
-    <nav
-      className="mt-16 pt-8 border-t-2 border-[--rule] flex items-center justify-between gap-4"
-      aria-label="Article pagination"
-    >
-      {hasPrev ? (
-        <Link
-          href={`/author/${slug}?page=${page - 1}`}
-          className="flex items-center gap-2 font-['Barlow_Condensed'] font-bold uppercase tracking-widest text-sm text-[--ink] hover:text-[--accent] transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" aria-hidden />
-          Newer Stories
-        </Link>
-      ) : (
-        <span />
-      )}
-
-      <span className="font-['Barlow_Condensed'] text-[--ink-muted] text-sm">
-        Page {page}
-      </span>
-
-      {hasNext ? (
-        <Link
-          href={`/author/${slug}?page=${page + 1}`}
-          className="flex items-center gap-2 font-['Barlow_Condensed'] font-bold uppercase tracking-widest text-sm text-[--ink] hover:text-[--accent] transition-colors"
-        >
-          Older Stories
-          <ChevronRight className="w-4 h-4" aria-hidden />
-        </Link>
-      ) : (
-        <span />
-      )}
-    </nav>
-  )
-}
-
-// ─── Async post list (streamed inside Suspense) ───────────────────────────────
-
-async function AuthorPostList({
-  slug,
-  page,
-}: {
-  slug: string
-  page: number
-}) {
-  const cursor = await getCursorForPage(slug, page)
-  const { posts, pageInfo } = await getAuthorProfile(slug, PER_PAGE, cursor)
-
-  if (posts.length === 0) {
-    return (
-      <div className="py-20 text-center border-2 border-dashed border-[--rule]">
-        <p className="font-['Barlow_Condensed'] text-[--ink-faint] font-bold uppercase tracking-[0.2em] text-sm">
-          {page > 1 ? 'No more stories on this page.' : 'No stories filed yet.'}
-        </p>
-        {page > 1 && (
-          <Link
-            href={`/author/${slug}`}
-            className="mt-4 inline-block font-['Barlow_Condensed'] text-[--accent] font-bold uppercase tracking-widest text-sm hover:underline"
-          >
-            Back to page 1
-          </Link>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <>
-      <div className="flex flex-col divide-y divide-[--rule]">
-        {posts.map((post: SportsPost, index: number) => (
-          <PostListItem
-            key={post.slug}
-            post={post}
-            priority={page === 1 && index < 2}
-            variant="default"
-          />
-        ))}
-      </div>
-      <PaginationNav slug={slug} page={page} pageInfo={pageInfo} />
-    </>
-  )
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default async function AuthorPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>
-  searchParams: Promise<{ page?: string }>
-}) {
+export default async function AuthorPage({ params, searchParams }: PageProps) {
   const { slug } = await params
   const { page: pageParam } = await searchParams
+  const currentPage = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
 
-  // Parse page number — clamp to 1 minimum, NaN → 1.
-  const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
+  const cursor = await getCursorForPage(slug, currentPage)
+  const { author, posts, pageInfo } = await getAuthorProfile(slug, PER_PAGE, cursor)
 
-  // Fetch the author card data independently (fast, cached 300s).
-  // We call with first=1 here just to validate the author exists without
-  // loading all their posts — the posts are fetched inside AuthorPostList.
-  const { author } = await getAuthorProfile(slug, 1, null)
-  if (!author) notFound()
+  if (!author || posts.length === 0) notFound()
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-16 min-h-screen bg-[--paper]">
+    <main className="min-h-screen bg-gray-50 pb-16">
 
-      {/* Author card renders immediately */}
-      <AuthorCard author={author} />
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-[760px] mx-auto px-4 sm:px-6 pt-8 pb-8">
 
-      {/* Section heading */}
-      <div className="flex items-center gap-4 mb-10">
-        <h2 className="font-['Playfair_Display'] font-black text-2xl uppercase text-[--ink] shrink-0">
-          Latest from {author.name.split(' ')[0]}
-        </h2>
-        <div className="h-px flex-1 bg-[--rule]" aria-hidden />
+          {/* Breadcrumb */}
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-2 mb-5 text-[10px] font-bold uppercase tracking-widest text-gray-400"
+          >
+            <Link href="/" className="hover:text-red-600 transition-colors">
+              Home
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span className="text-gray-600">Authors</span>
+            <span aria-hidden="true">/</span>
+            <span className="text-gray-600">{author.name}</span>
+          </nav>
+
+          <AuthorCard author={author} />
+
+          {/* Story count + page indicator */}
+          <p className="mt-5 text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+            Stories by {author.name.split(' ')[0]}
+            {currentPage > 1 && (
+              <>
+                <span className="text-gray-300 mx-2" aria-hidden="true">·</span>
+                Page {currentPage}
+              </>
+            )}
+          </p>
+
+        </div>
       </div>
 
-      {/* Post list streams in — skeleton shown while fetching */}
-      <Suspense fallback={<PostListSkeleton />}>
-        <AuthorPostList slug={slug} page={page} />
-      </Suspense>
+      {/* ── Content ───────────────────────────────────────────────────────── */}
+      <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-6">
+        <div className=" divide-y divide-gray-100 px-4 sm:px-6">
+          {posts.map((post, index) => (
+            <WPPostListItem
+              key={post.slug}
+              post={post}
+              priority={currentPage === 1 && index < 2}
+              variant="default"
+            />
+          ))}
+        </div>
+
+        <WPPagination
+          currentPage={currentPage}
+          hasNextPage={pageInfo.hasNextPage}
+          basePath={`/author/${slug}`}
+          variant="tailwind"
+        />
+      </div>
+
     </main>
   )
 }

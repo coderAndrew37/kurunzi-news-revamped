@@ -1,132 +1,88 @@
 // app/contact/page.tsx
-import { Metadata } from "next";
+// Editorial team + contact details — pure Tailwind, matches site palette.
+
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: "Editorial Team | Kurunzi Sports",
+  title: 'Editorial Team | Kurunzi Sports',
   description:
-    "Meet the journalists and editors behind Kurunzi Sports — Kenya's premier digital sports archive.",
-};
+    'Meet the journalists and editors behind Kurunzi Sports — Kenya\'s premier digital sports archive.',
+}
 
 const TEAM = [
   {
-    name: "Omollo Andrew",
-    role: "Editor-in-Chief",
-    bio: "Omollo has covered Kenyan sport for over a decade, reporting from AFCON tournaments, the Olympics, and every Kenya Premier League season since 2014. He founded Kurunzi Sports to build the archive Kenyan sport deserves.",
-    email: "andrew@kurunzisports.com",
+    name: 'Omollo Andrew',
+    role: 'Editor-in-Chief',
+    bio: 'Omollo has covered Kenyan sport for over a decade, reporting from AFCON tournaments, the Olympics, and every Kenya Premier League season since 2014. He founded Kurunzi Sports to build the archive Kenyan sport deserves.',
+    email: 'andrew@kurunzisports.com',
   },
   {
-    name: "Editorial Desk",
-    role: "News & Reporting",
-    bio: "Our reporting team covers breaking news, match reports, and feature stories across all disciplines — from KPL football to national athletics championships.",
-    email: "editorial@kurunzisports.com",
+    name: 'Editorial Desk',
+    role: 'News & Reporting',
+    bio: 'Our reporting team covers breaking news, match reports, and feature stories across all disciplines — from KPL football to national athletics championships.',
+    email: 'editorial@kurunzisports.com',
   },
-];
+]
 
 const CONTACTS = [
-  { label: "General enquiries", value: "info@kurunzisports.com" },
-  {
-    label: "Editorial tips & corrections",
-    value: "editorial@kurunzisports.com",
-  },
-  { label: "Partnerships & advertising", value: "partners@kurunzisports.com" },
-];
+  { label: 'General enquiries', email: 'info@kurunzisports.com' },
+  { label: 'Editorial tips & corrections', email: 'editorial@kurunzisports.com' },
+  { label: 'Partnerships & advertising', email: 'partners@kurunzisports.com' },
+]
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen pb-24" style={{ background: "var(--paper)" }}>
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div
-        className="border-b"
-        style={{ borderColor: "var(--rule)", background: "var(--paper-warm)" }}
-      >
-        <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-14">
-          <p
-            className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em]"
-            style={{ fontFamily: "var(--font-ui)", color: "var(--accent)" }}
-          >
+    <main className="min-h-screen bg-gray-50 pb-16">
+
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-[760px] mx-auto px-4 sm:px-6 pt-8 pb-8">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 mb-3">
             People
           </p>
-          <h1
-            className="kn-headline"
-            style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}
-          >
-            Editorial Team
-          </h1>
-          <p
-            className="mt-4 text-lg leading-relaxed"
-            style={{
-              fontFamily: "var(--font-body)",
-              fontStyle: "italic",
-              color: "var(--ink-soft)",
-            }}
-          >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-1.5 h-8 bg-red-600 rounded-sm shrink-0" aria-hidden="true" />
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+              Editorial Team
+            </h1>
+          </div>
+          <p className="text-base sm:text-lg text-gray-500 italic leading-relaxed">
             The journalists, editors, and researchers who put Kurunzi Sports
             together every day.
           </p>
         </div>
       </div>
 
-      <div className="max-w-[760px] mx-auto px-4 sm:px-6 pt-12 space-y-16">
-        {/* ── Team ────────────────────────────────────────────────────────── */}
+      <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-10 space-y-14">
+
+        {/* ── Team ──────────────────────────────────────────────────────── */}
         <section>
-          <div className="space-y-8">
+          <div className="rounded-lg shadow-sm border border-gray-100 bg-white divide-y divide-gray-100">
             {TEAM.map((member) => (
-              <div
-                key={member.name}
-                className="flex gap-5 pb-8 border-b last:border-0"
-                style={{ borderColor: "var(--rule)" }}
-              >
-                {/* Avatar placeholder */}
+              <div key={member.name} className="flex gap-5 px-5 sm:px-6 py-6">
+                {/* Avatar */}
                 <div
-                  className="flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center text-white font-black text-lg"
-                  style={{
-                    background: "var(--accent)",
-                    fontFamily: "var(--font-display)",
-                  }}
+                  className="shrink-0 w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-black text-lg"
+                  aria-hidden="true"
                 >
                   {member.name.charAt(0)}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-3 mb-2">
-                    <h2
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: "1.125rem",
-                        fontWeight: 700,
-                        color: "var(--ink)",
-                      }}
-                    >
+                  <div className="flex flex-wrap items-baseline gap-2 mb-1.5">
+                    <h2 className="text-base font-bold text-gray-900">
                       {member.name}
                     </h2>
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-[0.14em]"
-                      style={{
-                        fontFamily: "var(--font-ui)",
-                        color: "var(--accent)",
-                      }}
-                    >
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">
                       {member.role}
                     </span>
                   </div>
-                  <p
-                    className="mb-3 leading-relaxed"
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "0.9375rem",
-                      color: "var(--ink-soft)",
-                    }}
-                  >
+                  <p className="text-sm text-gray-500 leading-relaxed mb-3">
                     {member.bio}
                   </p>
                   <a
                     href={`mailto:${member.email}`}
-                    className="text-[11px] font-bold uppercase tracking-wider transition-colors hover:opacity-70"
-                    style={{
-                      fontFamily: "var(--font-ui)",
-                      color: "var(--accent)",
-                      textDecoration: "none",
-                    }}
+                    className="text-[11px] font-bold uppercase tracking-wider text-red-600 hover:text-gray-900 transition-colors"
                   >
                     {member.email}
                   </a>
@@ -136,79 +92,42 @@ export default function ContactPage() {
           </div>
         </section>
 
-        {/* ── Contact details ──────────────────────────────────────────────── */}
+        {/* ── Contact details ───────────────────────────────────────────── */}
         <section>
-          <h2
-            className="mb-6"
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "1.5rem",
-              fontWeight: 700,
-              color: "var(--ink)",
-              letterSpacing: "-0.02em",
-            }}
-          >
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight mb-6">
             Contact
           </h2>
 
-          <div className="space-y-4">
-            {CONTACTS.map(({ label, value }) => (
+          <div className="rounded-lg shadow-sm border border-gray-100 bg-white divide-y divide-gray-100">
+            {CONTACTS.map(({ label, email }) => (
               <div
                 key={label}
-                className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-3 border-b"
-                style={{ borderColor: "var(--rule)" }}
+                className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-5 sm:px-6 py-4"
               >
-                <span
-                  className="w-full sm:w-48 flex-shrink-0 text-[10px] font-bold uppercase tracking-[0.14em]"
-                  style={{
-                    fontFamily: "var(--font-ui)",
-                    color: "var(--ink-muted)",
-                  }}
-                >
+                <span className="sm:w-52 shrink-0 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                   {label}
                 </span>
                 <a
-                  href={`mailto:${value}`}
-                  style={{
-                    fontFamily: "var(--font-ui)",
-                    fontSize: "0.875rem",
-                    fontWeight: 600,
-                    color: "var(--accent)",
-                    textDecoration: "none",
-                  }}
+                  href={`mailto:${email}`}
+                  className="text-sm font-semibold text-red-600 hover:text-gray-900 transition-colors"
                 >
-                  {value}
+                  {email}
                 </a>
               </div>
             ))}
           </div>
 
-          <div
-            className="mt-8 p-5 rounded-sm"
-            style={{
-              background: "var(--paper-warm)",
-              border: "1px solid var(--rule)",
-            }}
-          >
-            <p
-              className="text-[11px] font-bold uppercase tracking-[0.14em] mb-2"
-              style={{ fontFamily: "var(--font-ui)", color: "var(--accent)" }}
-            >
+          {/* Tip box */}
+          <div className="mt-6 bg-white rounded-lg border border-gray-100 shadow-sm px-5 sm:px-6 py-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 mb-2">
               Submit a tip
             </p>
-            <p
-              className="leading-relaxed"
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "0.9375rem",
-                color: "var(--ink-soft)",
-              }}
-            >
+            <p className="text-sm text-gray-500 leading-relaxed">
               Have a story lead, a correction, or information we should know
-              about? Email our editorial desk at{" "}
+              about? Email our editorial desk at{' '}
               <a
                 href="mailto:editorial@kurunzisports.com"
-                style={{ color: "var(--accent)", textDecoration: "underline" }}
+                className="text-red-600 underline hover:text-gray-900 transition-colors"
               >
                 editorial@kurunzisports.com
               </a>
@@ -216,7 +135,8 @@ export default function ContactPage() {
             </p>
           </div>
         </section>
+
       </div>
     </main>
-  );
+  )
 }

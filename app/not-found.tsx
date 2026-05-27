@@ -1,84 +1,74 @@
-import { Home, Search } from "lucide-react";
-import Link from "next/link";
+// app/not-found.tsx
+// 404 page — pure Tailwind, red-600 accent, matches site palette.
+
+import { Home, Search } from 'lucide-react'
+import Link from 'next/link'
 
 export default function NotFound() {
   return (
-    <main className="min-h-[80-vh] flex items-center justify-center bg-[#fdfcfb] px-4 py-24">
+    <main className="min-h-[80vh] flex items-center justify-center bg-gray-50 px-4 py-24">
       <div className="max-w-xl w-full text-center">
-        {/* Visual Element */}
+
+        {/* Visual */}
         <div className="mb-8 relative inline-block">
-          <span className="text-[12rem] font-black leading-none text-[#e8e2da] select-none uppercase tracking-tighter">
+          <span className="text-[12rem] font-black leading-none text-gray-100 select-none tracking-tighter">
             404
           </span>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="kn-kicker bg-[#1a5c38] text-white px-4 py-1 rounded-sm shadow-xl">
+            <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 shadow-lg">
               Out of Bounds
             </span>
           </div>
         </div>
 
-        {/* Messaging */}
-        <h1 className="kn-headline text-3xl md:text-5xl mb-6 uppercase tracking-tighter">
-          This story is <span className="text-[#1a5c38]">off the pitch.</span>
+        {/* Headline */}
+        <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter text-gray-900 mb-5 leading-none">
+          This story is{' '}
+          <span className="text-red-600">off the pitch.</span>
         </h1>
 
-        <p className="font-['Source_Serif_4'] text-lg text-[#7a736c] mb-12 italic leading-relaxed">
-          The page you are looking for might have been moved, deleted, or the
-          URL might have changed during our digital stadium upgrade.
+        <p className="text-base sm:text-lg text-gray-500 italic leading-relaxed mb-10">
+          The page you&apos;re looking for may have been moved, deleted, or the
+          URL changed during our digital stadium upgrade.
         </p>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/"
-            className="kn-action-btn w-full sm:w-auto bg-[#1a5c38] text-white px-8 py-4 rounded-full flex items-center justify-center gap-2 hover:bg-black transition-all"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-gray-900 text-white px-8 py-3.5 font-bold text-xs uppercase tracking-widest transition-colors rounded-full"
           >
-            <Home className="w-4 h-4" />
+            <Home className="w-4 h-4" aria-hidden="true" />
             Back to Home
           </Link>
-
           <Link
             href="/search"
-            className="kn-action-btn w-full sm:w-auto border-2 border-[#1a5c38] text-[#1a5c38] px-8 py-4 rounded-full flex items-center justify-center gap-2 hover:bg-[#f7f4f0] transition-all"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 border-2 border-red-600 text-red-600 hover:bg-red-50 px-8 py-3.5 font-bold text-xs uppercase tracking-widest transition-colors rounded-full"
           >
-            <Search className="w-4 h-4" />
+            <Search className="w-4 h-4" aria-hidden="true" />
             Search Archive
           </Link>
         </div>
 
-        {/* Quick Links */}
-        <div className="mt-16 pt-8 border-t border-[#e8e2da]">
-          <p className="font-['Barlow_Condensed'] text-[10px] font-bold text-[#b5aea7] uppercase tracking-[0.3em] mb-4">
+        {/* Quick links */}
+        <div className="mt-14 pt-8 border-t border-gray-200">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">
             Try these categories
           </p>
           <div className="flex flex-wrap justify-center gap-6">
-            <Link
-              href="/football"
-              className="text-sm font-bold uppercase hover:text-[#1a5c38]"
-            >
-              Football
-            </Link>
-            <Link
-              href="/athletics"
-              className="text-sm font-bold uppercase hover:text-[#1a5c38]"
-            >
-              Athletics
-            </Link>
-            <Link
-              href="/rugby"
-              className="text-sm font-bold uppercase hover:text-[#1a5c38]"
-            >
-              Rugby
-            </Link>
-            <Link
-              href="/basketball"
-              className="text-sm font-bold uppercase hover:text-[#1a5c38]"
-            >
-              Basketball
-            </Link>
+            {['Football', 'Athletics', 'Rugby', 'Basketball'].map((cat) => (
+              <Link
+                key={cat}
+                href={`/${cat.toLowerCase()}`}
+                className="text-sm font-bold uppercase text-gray-600 hover:text-red-600 transition-colors"
+              >
+                {cat}
+              </Link>
+            ))}
           </div>
         </div>
+
       </div>
     </main>
-  );
+  )
 }

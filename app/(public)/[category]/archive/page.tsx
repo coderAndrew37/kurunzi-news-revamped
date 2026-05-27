@@ -3,12 +3,19 @@
 // URL: /football/archive, /athletics/archive, etc.
 // Linked from the category page's "Browse Full Archive" button.
 // Uses getCategoryArchive() with WPGraphQL cursor pagination.
+//
+// CHANGES (logic only, styling untouched):
+//   1. generateMetadata now fetches posts — page 1 uses posts[0].title as
+//      the page title (PD pattern). Next.js deduplicates the fetch so there
+//      is no extra round-trip to WordPress.
+//   2. Inline pagination replaced with <WPPagination /> — reusable across
+//      archive, search, tag, and author pages.
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getCategoryArchive } from "@/lib/wordpress/data";
 import PostListItem from "@/app/_components/wordpress/WPArchiveListItem";
+import WPPagination from "@/app/_components/wordpress/WPPagination";
 
 const POSTS_PER_PAGE = 12;
 
@@ -17,15 +24,51 @@ interface PageProps {
   searchParams: Promise<{ page?: string }>;
 }
 
-// Generate metadata
-export async function generateMetadata({ params }: { params: Promise<{ category: string }> }) {
-  const { category } = await params;
-  const title = category.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+// ── Cursor helper ──────────────────────────────────────────────────────────
+// WPGraphQL cursor: arrayconnection:<zero-based-index-of-last-item-on-prev-page>
+function buildCursor(page: number): string | null {
+  if (page <= 1) return null;
+  return btoa(`arrayconnection:${(page - 1) * POSTS_PER_PAGE - 1}`);
+}
+
+// ── Metadata ───────────────────────────────────────────────────────────────
+// Fetches posts so we can use the top story's title on page 1 (PD pattern).
+// Next.js memoises identical fetches within the same render — the page
+// component's getCategoryArchive() call below hits the cache, not the network.
+
+export async function generateMetadata({ params, searchParams }: PageProps) {
+  const { category: categorySlug } = await params;
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10));
+
+  const { posts } = await getCategoryArchive(
+    categorySlug,
+    POSTS_PER_PAGE,
+    buildCursor(currentPage)
+  );
+
+  if (posts.length === 0) {
+    return { title: "Not Found | Kurunzi Sports" };
+  }
+
+  const categoryTitle = posts[0].category;
+
   return {
-    title: `${title} Archive | Kurunzi Sports`,
-    description: `All ${title} coverage from Kurunzi Sports`,
+    title:
+      currentPage === 1
+        ? `${posts[0].title} | Kurunzi Sports`
+        : `${categoryTitle} — Page ${currentPage} | Kurunzi Sports`,
+    description: `All ${categoryTitle} coverage from Kurunzi Sports`,
+    alternates: {
+      canonical:
+        currentPage === 1
+          ? `/${categorySlug}/archive`
+          : `/${categorySlug}/archive?page=${currentPage}`,
+    },
   };
 }
+
+// ── Page component ─────────────────────────────────────────────────────────
 
 export default async function CategoryArchivePage({ params, searchParams }: PageProps) {
   const { category: categorySlug } = await params;
@@ -33,12 +76,12 @@ export default async function CategoryArchivePage({ params, searchParams }: Page
 
   const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10));
 
-  // WPGraphQL cursor: arrayconnection:<zero-based-index-of-last-item-on-previous-page>
-  const after = currentPage > 1
-    ? btoa(`arrayconnection:${(currentPage - 1) * POSTS_PER_PAGE - 1}`)
-    : null;
-
-  const { posts, pageInfo } = await getCategoryArchive(categorySlug, POSTS_PER_PAGE, after);
+  // Deduplicated with the generateMetadata() fetch above
+  const { posts, pageInfo } = await getCategoryArchive(
+    categorySlug,
+    POSTS_PER_PAGE,
+    buildCursor(currentPage)
+  );
 
   if (posts.length === 0) notFound();
 
@@ -109,58 +152,11 @@ export default async function CategoryArchivePage({ params, searchParams }: Page
         </div>
 
         {/* ── Pagination ──────────────────────────────────────────────── */}
-        <div
-          className="mt-8 pt-8 border-t flex items-center justify-between"
-          style={{ borderColor: "var(--rule)" }}
-        >
-          {/* Prev */}
-          {currentPage > 1 ? (
-            <Link
-              href={`/${categorySlug}/archive?page=${currentPage - 1}`}
-              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider transition-colors hover:text-[var(--accent)]"
-              style={{ fontFamily: "var(--font-ui)", color: "var(--ink-soft)" }}
-            >
-              <ChevronLeft size={14} />
-              Newer stories
-            </Link>
-          ) : (
-            <span
-              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider opacity-25"
-              style={{ fontFamily: "var(--font-ui)", color: "var(--ink-soft)" }}
-            >
-              <ChevronLeft size={14} />
-              Newer stories
-            </span>
-          )}
-
-          {/* Page number */}
-          <span
-            className="text-[11px] font-bold tabular-nums"
-            style={{ fontFamily: "var(--font-ui)", color: "var(--ink-faint)" }}
-          >
-            {currentPage}
-          </span>
-
-          {/* Next */}
-          {pageInfo.hasNextPage ? (
-            <Link
-              href={`/${categorySlug}/archive?page=${currentPage + 1}`}
-              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider transition-colors hover:text-[var(--accent)]"
-              style={{ fontFamily: "var(--font-ui)", color: "var(--ink-soft)" }}
-            >
-              Older stories
-              <ChevronRight size={14} />
-            </Link>
-          ) : (
-            <span
-              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider opacity-25"
-              style={{ fontFamily: "var(--font-ui)", color: "var(--ink-soft)" }}
-            >
-              Older stories
-              <ChevronRight size={14} />
-            </span>
-          )}
-        </div>
+        <WPPagination
+          currentPage={currentPage}
+          hasNextPage={pageInfo.hasNextPage}
+          basePath={`/${categorySlug}/archive`}
+        />
 
         {/* Back to category */}
         <div

@@ -1,12 +1,9 @@
 "use client";
 
 // app/_components/wordpress/WPPostListItem.tsx
-// Two-column article row: thumbnail left, text right.
-// Styled after PD Digital's clean list layout, adapted for Kurunzi Sports.
-// Uses SkeletonImage — wrapped in an overflow-hidden container to clip
-// its internal aspect-[16/9] figure down to the thumbnail box size.
+// Two-column article row: thumbnail left, category + headline right.
+// Clean list design: generous row height, full-width dividers, minimal chrome.
 
-import { Calendar } from "lucide-react";
 import { SportsPost } from "@/lib/wordpress/types";
 import ArticleLink from "./WPArticleLink";
 import SkeletonImage from "../ui/SkeletonImage";
@@ -25,32 +22,22 @@ export default function PostListItem({
   const categorySlug =
     post.category?.toLowerCase().replace(/\s+/g, "-") ?? "news";
 
-  const excerpt =
-    post.newsData?.theLede || post.excerpt?.replace(/<[^>]+>/g, "") || "";
-
   const isCompact = variant === "compact";
-
-  // Thumbnail dimensions
-  const thumbW = isCompact ? "w-20" : "w-[100px] sm:w-[120px]";
-  const thumbH = isCompact ? "h-16" : "h-[68px] sm:h-20";
 
   return (
     <ArticleLink
       categorySlug={categorySlug}
       slug={post.slug}
-      className="group flex items-start gap-4 sm:gap-5 py-4 border-b border-[var(--rule)] last:border-0 hover:bg-[var(--paper-warm)] transition-colors duration-150 -mx-3 px-3 rounded-sm"
+      className="group flex items-start gap-5 py-6 px-1"
+      aria-label={post.title}
     >
-      {/* ── Thumbnail ──────────────────────────────────────────────────────── */}
-      {/*
-        SkeletonImage renders a <figure> with aspect-[16/9] internally.
-        We constrain it by:
-          1. A fixed-size outer div (thumbW × thumbH) with overflow-hidden
-          2. Passing className="!aspect-auto h-full" to override the internal
-             aspect ratio so the <img>/<Image> fills our box instead.
-        The [&>div] selector targets SkeletonImage's inner wrapper div.
-      */}
+      {/* ── Thumbnail ─────────────────────────────────────────────────── */}
       <div
-        className={`relative flex-shrink-0 overflow-hidden rounded-sm bg-[var(--paper-warm)] ${thumbW} ${thumbH} [&_figure]:h-full [&_figure>div]:h-full [&_figure>div]:aspect-auto`}
+        className={[
+          "relative flex-shrink-0 overflow-hidden rounded-md bg-gray-100",
+          "[&_figure]:h-full [&_figure>div]:h-full [&_figure>div]:aspect-auto",
+          isCompact ? "w-[120px] h-[85px]" : "w-[160px] h-[110px]",
+        ].join(" ")}
       >
         {post.newsData?.isBreaking && (
           <span className="absolute bottom-1.5 left-1.5 z-10 flex items-center gap-1 bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm">
@@ -58,56 +45,30 @@ export default function PostListItem({
             Live
           </span>
         )}
-
         <SkeletonImage
           src={post.featuredImage}
           alt={post.title}
           priority={priority}
-          // className targets the <img> itself — make it fill the constrained box
-          className="!aspect-auto h-full w-full"
+          className="!aspect-auto h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
       </div>
 
-      {/* ── Text ───────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between gap-1.5 py-0.5">
-        <div>
-          {/* Category kicker — matches PD's small label above headline */}
-          <span className="inline-block mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)] font-['Barlow_Condensed']">
-            {post.category}
-          </span>
+      {/* ── Text ──────────────────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 pt-0.5">
+        {/* Category label — small, muted, above headline */}
+        <span className="block mb-2 text-[12px] font-semibold text-gray-400 uppercase tracking-wider">
+          {post.category}
+        </span>
 
-          {/* Headline */}
-          <h3
-            className={[
-              "leading-snug group-hover:opacity-70 transition-opacity font-['Barlow_Condensed'] font-bold text-[var(--ink)]",
-              isCompact
-                ? "text-[13px] line-clamp-2"
-                : "text-[15px] sm:text-[16px] line-clamp-3",
-            ].join(" ")}
-            style={{ letterSpacing: "-0.01em" }}
-          >
-            {post.title}
-          </h3>
-
-          {/* Lede — default variant, larger screens only */}
-          {!isCompact && excerpt && (
-            <p className="hidden sm:block mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-[var(--ink-soft)] italic font-['Source_Serif_4']">
-              {excerpt}
-            </p>
-          )}
-        </div>
-
-        {/* Date */}
-        <div className="flex items-center gap-1.5 text-[var(--ink-faint)]">
-          <Calendar size={9} />
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] font-['Barlow_Condensed']">
-            {new Date(post.date).toLocaleDateString("en-KE", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </span>
-        </div>
+        {/* Headline — large, bold, black */}
+        <h3
+          className={[
+            "font-bold text-gray-900 leading-snug group-hover:text-red-600 transition-colors duration-150",
+            isCompact ? "text-[15px] line-clamp-2" : "text-[18px] sm:text-[20px] line-clamp-3",
+          ].join(" ")}
+        >
+          {post.title}
+        </h3>
       </div>
     </ArticleLink>
   );

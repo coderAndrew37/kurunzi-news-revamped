@@ -1,177 +1,135 @@
 // app/tag/[tag]/page.tsx
-// Tag archive page — mirrors CategoryPage structure.
-// Uses getPostsByTag() which returns pageInfo for cursor-based pagination.
+// Tag archive — mirrors the search page structure exactly.
+// White header (breadcrumb + red-bar title + count) on gray-50 page background.
+// Cursor-based pagination via WPPagination (variant="tailwind").
+// PD title pattern: first post's title as page <title> on page 1.
 
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ChevronLeft, ChevronRight, ArrowLeft, Hash } from "lucide-react";
-import { getPostsByTag } from "@/lib/wordpress/data";
-import PostListItem from "@/app/_components/wordpress/WPArchiveListItem";
+import WPPostListItem from '@/app/_components/wordpress/WPArchiveListItem'
+import WPPagination from '@/app/_components/wordpress/WPPagination'
+import { getPostsByTag } from '@/lib/wordpress/data'
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
-const POSTS_PER_PAGE = 15;
+const PER_PAGE = 15
 
 interface PageProps {
-  params: Promise<{ tag: string }>;
-  searchParams: Promise<{ page?: string }>;
+  params: Promise<{ tag: string }>
+  searchParams: Promise<{ page?: string }>
 }
 
-export default async function TagPage({ params, searchParams }: PageProps) {
-  const { tag: tagSlug } = await params;
-  const { page: pageParam } = await searchParams;
+// ── Metadata ──────────────────────────────────────────────────────────────────
 
-  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10));
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+  const { tag: tagSlug } = await params
+  const { page: pageParam } = await searchParams
+  const currentPage = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
+
   const after = currentPage > 1
-    ? btoa(`arrayconnection:${(currentPage - 1) * POSTS_PER_PAGE - 1}`)
-    : null;
+    ? btoa(`arrayconnection:${(currentPage - 1) * PER_PAGE - 1}`)
+    : null
 
-  const { tagInfo, posts, pageInfo } = await getPostsByTag(tagSlug, POSTS_PER_PAGE, after);
+  const { tagInfo, posts } = await getPostsByTag(tagSlug, PER_PAGE, after)
+  const tagName = tagInfo?.name ?? decodeURIComponent(tagSlug).replace(/-/g, ' ')
 
-  if (posts.length === 0) notFound();
+  const title =
+    currentPage === 1 && posts.length > 0
+      ? `${posts[0].title} | Kurunzi Sports`
+      : currentPage > 1 && posts.length > 0
+        ? `#${tagName} — Page ${currentPage} | Kurunzi Sports`
+        : `#${tagName} | Kurunzi Sports`
 
-  const tagName = tagInfo?.name ?? decodeURIComponent(tagSlug).replace(/-/g, " ");
+  return {
+    title,
+    description: `Stories tagged #${tagName} on Kurunzi Sports.`,
+  }
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default async function TagPage({ params, searchParams }: PageProps) {
+  const { tag: tagSlug } = await params
+  const { page: pageParam } = await searchParams
+
+  const currentPage = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
+  const after = currentPage > 1
+    ? btoa(`arrayconnection:${(currentPage - 1) * PER_PAGE - 1}`)
+    : null
+
+  const { tagInfo, posts, pageInfo } = await getPostsByTag(tagSlug, PER_PAGE, after)
+
+  if (posts.length === 0) notFound()
+
+  const tagName = tagInfo?.name ?? decodeURIComponent(tagSlug).replace(/-/g, ' ')
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: "var(--paper)" }}>
+    <main className="min-h-screen bg-gray-50 pb-16">
 
-      {/* ── Tag header ──────────────────────────────────────────────────── */}
-      <div
-        className="border-b"
-        style={{ borderColor: "var(--rule)", background: "var(--paper-warm)" }}
-      >
-        <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-10 sm:py-14">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 mb-6 text-[10px] font-bold uppercase tracking-[0.18em] transition-colors hover:text-[var(--accent)]"
-            style={{ color: "var(--ink-faint)", fontFamily: "var(--font-ui)" }}
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-[760px] mx-auto px-4 sm:px-6 pt-8 pb-8">
+
+          {/* Breadcrumb */}
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-2 mb-5 text-[10px] font-bold uppercase tracking-widest text-gray-400"
           >
-            <ArrowLeft size={11} />
-            All Sports
-          </Link>
+            <Link href="/" className="hover:text-red-600 transition-colors">
+              Home
+            </Link>
+            <span aria-hidden="true">/</span>
+            <Link href="/tags" className="hover:text-red-600 transition-colors">
+              Tags
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span className="text-gray-600">{tagName}</span>
+          </nav>
 
-          <div className="flex items-start gap-3 mb-2">
-            <Hash
-              size={28}
-              strokeWidth={3}
-              style={{ color: "var(--accent)", marginTop: 4, flexShrink: 0 }}
-            />
-            <h1
-              className="leading-none"
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "clamp(2rem, 5vw, 3.25rem)",
-                fontWeight: 900,
-                letterSpacing: "-0.03em",
-                color: "var(--ink)",
-              }}
-            >
-              {tagName}
+          {/* Title row */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-1.5 h-8 bg-red-600 rounded-sm shrink-0" aria-hidden="true" />
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+              <span className="text-red-600">#</span>{tagName}
             </h1>
           </div>
 
-          <p
-            className="mt-3 text-sm"
-            style={{ fontFamily: "var(--font-body)", color: "var(--ink-muted)", fontStyle: "italic" }}
-          >
+          {/* Count + page indicator */}
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
             {tagInfo?.count
-              ? `${tagInfo.count} article${tagInfo.count !== 1 ? "s" : ""} tagged`
-              : "Tagged articles"}{" "}
-            · Page {currentPage}
+              ? `${tagInfo.count} ${tagInfo.count === 1 ? 'story' : 'stories'}`
+              : 'Tagged stories'}
+            {currentPage > 1 && (
+              <>
+                <span className="text-gray-300 mx-2" aria-hidden="true">·</span>
+                Page {currentPage}
+              </>
+            )}
           </p>
+
         </div>
       </div>
 
-      {/* ── Article list ────────────────────────────────────────────────── */}
-      <div className="max-w-[760px] mx-auto px-4 sm:px-6 pt-10">
-
-        {/* Divider rule */}
-        <div
-          className="flex items-center gap-3 mb-8"
-          style={{ borderTop: "2px solid var(--ink)", paddingTop: "1rem" }}
-        >
-          <span
-            className="text-[10px] font-black uppercase tracking-[0.2em]"
-            style={{ fontFamily: "var(--font-ui)", color: "var(--ink-soft)" }}
-          >
-            {posts.length} stories this page
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-5">
-          {posts.map((post, i) => (
-            <PostListItem
+      {/* ── Content ───────────────────────────────────────────────────────── */}
+      <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-6">
+        <div className="rounded-lg shadow-sm border border-gray-100 bg-white divide-y divide-gray-100 px-4 sm:px-6">
+          {posts.map((post, index) => (
+            <WPPostListItem
               key={post.slug}
               post={post}
-              priority={i < 3}
+              priority={index < 2}
+              variant="default"
             />
           ))}
         </div>
 
-        {/* ── Pagination ──────────────────────────────────────────────── */}
-        <div
-          className="mt-12 pt-8 border-t flex items-center justify-between gap-4 flex-wrap"
-          style={{ borderColor: "var(--rule)" }}
-        >
-          {currentPage > 1 ? (
-            <Link
-              href={`/tag/${tagSlug}?page=${currentPage - 1}`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border font-bold text-[11px] uppercase tracking-wider transition-all hover:border-[var(--ink)] hover:text-[var(--ink)]"
-              style={{ borderColor: "var(--rule)", color: "var(--ink-soft)", fontFamily: "var(--font-ui)" }}
-            >
-              <ChevronLeft size={14} />
-              Newer
-            </Link>
-          ) : (
-            <span
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border font-bold text-[11px] uppercase tracking-wider opacity-30 cursor-not-allowed"
-              style={{ borderColor: "var(--rule)", color: "var(--ink-soft)", fontFamily: "var(--font-ui)" }}
-            >
-              <ChevronLeft size={14} />
-              Newer
-            </span>
-          )}
-
-          <span
-            className="text-[11px] font-bold uppercase tracking-wider"
-            style={{ fontFamily: "var(--font-ui)", color: "var(--ink-muted)" }}
-          >
-            Page {currentPage}
-          </span>
-
-          {pageInfo.hasNextPage ? (
-            <Link
-              href={`/tag/${tagSlug}?page=${currentPage + 1}`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border font-bold text-[11px] uppercase tracking-wider transition-all hover:bg-[var(--ink)] hover:border-[var(--ink)] hover:text-white"
-              style={{ borderColor: "var(--rule)", color: "var(--ink-soft)", fontFamily: "var(--font-ui)" }}
-            >
-              Older
-              <ChevronRight size={14} />
-            </Link>
-          ) : (
-            <span
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border font-bold text-[11px] uppercase tracking-wider opacity-30 cursor-not-allowed"
-              style={{ borderColor: "var(--rule)", color: "var(--ink-soft)", fontFamily: "var(--font-ui)" }}
-            >
-              Older
-              <ChevronRight size={14} />
-            </span>
-          )}
-        </div>
-
-        {/* Back home */}
-        <div
-          className="mt-12 pt-8 border-t text-center"
-          style={{ borderColor: "var(--rule)" }}
-        >
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors hover:text-[var(--accent)]"
-            style={{ color: "var(--ink-muted)", fontFamily: "var(--font-ui)" }}
-          >
-            <ArrowLeft size={11} />
-            Back to all sports
-          </Link>
-        </div>
+        <WPPagination
+          currentPage={currentPage}
+          hasNextPage={pageInfo.hasNextPage}
+          basePath={`/tag/${tagSlug}`}
+          variant="tailwind"
+        />
       </div>
+
     </main>
-  );
+  )
 }

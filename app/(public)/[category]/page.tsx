@@ -1,15 +1,52 @@
 // app/[category]/page.tsx
-// Category landing page — uses updated NewsSection with viewAllHref prop.
-// "View All" on the first section → /[slug]/archive (full paginated list)
-// "More stories" button inside NewsSection → also /[slug]/archive
 
 import { getSportsPosts } from "@/lib/wordpress/data";
 import NewsSection from "@/app/_components/wordpress/WPNewsSection";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 
 interface PageProps {
   params: Promise<{ category: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { category: categorySlug } = await params;
+  const allPosts = await getSportsPosts();
+
+  const categoryPosts = allPosts.filter(
+    (p) => p.category.toLowerCase() === categorySlug.toLowerCase(),
+  );
+
+  if (!categoryPosts.length) return { title: categorySlug };
+
+  return {
+    title: categoryPosts[0].title,
+    description: categoryPosts[0].newsData?.theLede || categoryPosts[0].excerpt || undefined,
+  };
+}
+
+const FIRST_SECTION_SIZE = 8;
+
+// ─── Reusable ad placeholder ──────────────────────────────────────────────────
+function AdPlaceholder({ label }: { label: string }) {
+  return (
+    <div className="w-full border-y" style={{ borderColor: "var(--rule)", background: "var(--paper-warm)" }}>
+      <div className="max-w-[1140px] mx-auto px-4 sm:px-6 py-3">
+        <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-center mb-2" style={{ color: "var(--ink-faint)" }}>
+          Advertisement
+        </p>
+        <div
+          className="w-full h-[90px] rounded flex items-center justify-center border border-dashed"
+          style={{ borderColor: "var(--rule)", background: "var(--paper)" }}
+        >
+          <span className="text-xs font-medium" style={{ color: "var(--ink-faint)" }}>
+            {label}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default async function CategoryPage({ params }: PageProps) {
@@ -29,10 +66,14 @@ export default async function CategoryPage({ params }: PageProps) {
 
   const categoryTitle = categoryPosts[0].category;
 
+  const primaryPosts = categoryPosts.slice(0, FIRST_SECTION_SIZE);
+  const morePosts    = categoryPosts.slice(FIRST_SECTION_SIZE);
+  const hasMoreSection = morePosts.length >= 2;
+
   return (
     <main className="min-h-screen pb-20" style={{ background: "var(--paper)" }}>
 
-      {/* Category title header */}
+      {/* ── Category header ─────────────────────────────────────────────── */}
       <div
         className="border-b"
         style={{ borderColor: "var(--rule)", background: "var(--paper-warm)" }}
@@ -60,18 +101,34 @@ export default async function CategoryPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* NewsSection with archive links */}
+      {/* ── Primary section (posts 1–8) ─────────────────────────────────── */}
       <NewsSection
         title={categoryTitle}
         slug={categorySlug}
-        posts={categoryPosts}
-        // On the category page, both buttons point to the paginated archive
+        posts={primaryPosts}
         viewAllHref={`/${categorySlug}/archive`}
         viewAllLabel="Full archive"
       />
 
-      {/* Back home */}
-      <div className="max-w-[1140px] mx-auto px-4 sm:px-6 mt-16 flex flex-col items-center">
+      {/* ── Ad slot 1 — between sections ────────────────────────────────── */}
+      <AdPlaceholder label="728 × 90 — Leaderboard Ad" />
+
+      {/* ── "More on …" section (posts 9+) ──────────────────────────────── */}
+      {hasMoreSection && (
+        <NewsSection
+          title={`More on ${categoryTitle}`}
+          slug={categorySlug}
+          posts={morePosts}
+          viewAllHref={`/${categorySlug}/archive`}
+          viewAllLabel="Full archive"
+        />
+      )}
+
+      {/* ── Ad slot 2 — above footer ────────────────────────────────────── */}
+      <AdPlaceholder label="728 × 90 — Pre-footer Ad" />
+
+      {/* ── Back home ───────────────────────────────────────────────────── */}
+      <div className="max-w-[1140px] mx-auto px-4 sm:px-6 mt-10 flex flex-col items-center">
         <div className="h-px w-full mb-10" style={{ background: "var(--rule)" }} />
         <Link
           href="/"
@@ -81,6 +138,7 @@ export default async function CategoryPage({ params }: PageProps) {
           ← Back to all sports
         </Link>
       </div>
+
     </main>
   );
 }

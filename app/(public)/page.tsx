@@ -3,7 +3,6 @@ import { getSportsPosts } from "@/lib/wordpress/data";
 import { SportsPost } from "@/lib/wordpress/types";
 import BreakingNewsTicker from "../_components/wordpress/WPBreakingNewsTicker";
 import NewsSection from "../_components/wordpress/WPNewsSection";
-import WorldCupBanner from "../_components/wordpress/WPWorldCupBanner";
 
 // ─── Mirrors the hero's selectHeroPosts to derive which slugs it consumed ────
 //
