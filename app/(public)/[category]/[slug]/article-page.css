@@ -1,240 +1,12 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Barlow+Condensed:wght@500;600;700&display=swap");
+/* article-page.css
+   ONLY rules that Tailwind cannot express:
+   - Complex responsive grid with border-left on aside
+   - WordPress block content child selectors + drop-cap
+   - Fluid clamp() font sizes on kn-wp-content children
+   Everything else is in Tailwind now.
+*/
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Design tokens
-   Namespace: --color-* to avoid collisions with Tailwind v4's --color-* space.
-   If you're on Tailwind v3, feel free to use bare --ink etc.
-───────────────────────────────────────────────────────────────────────────── */
-:root {
-  --color-ink:        #0d0d0d;
-  --color-ink-soft:   #3d3935;
-  --color-ink-muted:  #7a736c;
-  --color-ink-faint:  #b5aea7;
-  --color-paper:      #fdfcfb;
-  --color-paper-warm: #f7f4f0;
-  --color-rule:       #e8e2da;
-  --color-accent:     #1a5c38;
-  --color-accent-dark:#134528;
-  --color-accent-pale:#eaf3ed;
-
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-body:    "Source Serif 4", Georgia, serif;
-  --font-ui:      "Barlow Condensed", system-ui, sans-serif;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Keyframes  (Tailwind cannot generate these)
-───────────────────────────────────────────────────────────────────────────── */
-@keyframes kn-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.3; }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Kicker — category pill above headline
-   (complex multi-property hover + border-bottom not convenient in Tailwind)
-───────────────────────────────────────────────────────────────────────────── */
-.kn-kicker {
-  display: inline-block;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  font-family: var(--font-ui);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-  border-bottom: 2px solid var(--color-accent);
-  text-decoration: none;
-  transition: color 0.15s, border-color 0.15s;
-}
-.kn-kicker:hover {
-  color: var(--color-accent-dark);
-  border-color: var(--color-accent-dark);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Breaking badge
-───────────────────────────────────────────────────────────────────────────── */
-.kn-breaking-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: var(--color-accent);
-  color: #fff;
-  font-family: var(--font-ui);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  border-radius: 2px;
-}
-.kn-pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #fff;
-  animation: kn-pulse 2s ease-in-out infinite;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Headline + deck  (fluid clamp sizing — not easily done in Tailwind)
-───────────────────────────────────────────────────────────────────────────── */
-.kn-headline {
-  margin-bottom: 1.25rem;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(1.85rem, 4.5vw, 3rem);
-  line-height: 1.1;
-  letter-spacing: -0.025em;
-  color: var(--color-ink);
-}
-
-.kn-deck {
-  margin-bottom: 1.75rem;
-  padding-left: 1rem;
-  font-family: var(--font-body);
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  font-style: italic;
-  color: var(--color-ink-soft);
-  line-height: 1.6;
-  border-left: 3px solid var(--color-rule);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Byline + meta
-───────────────────────────────────────────────────────────────────────────── */
-.kn-byline-author {
-  display: block;
-  font-family: var(--font-ui);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--color-ink);
-  text-decoration: none;
-  transition: color 0.15s;
-}
-.kn-byline-author:hover { color: var(--color-accent); }
-
-.kn-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  font-family: var(--font-ui);
-  font-size: 0.6875rem;
-  color: var(--color-ink-muted);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Action buttons (share / save)
-───────────────────────────────────────────────────────────────────────────── */
-.kn-action-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-family: var(--font-ui);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: transparent;
-  border: 1px solid var(--color-rule);
-  color: var(--color-ink-soft);
-  cursor: pointer;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
-}
-.kn-action-btn:hover {
-  border-color: var(--color-ink);
-  color: var(--color-ink);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Share panel + chips
-───────────────────────────────────────────────────────────────────────────── */
-.kn-share-panel {
-  position: absolute;
-  right: 0;
-  z-index: 50;
-  margin-top: 8px;
-  padding: 16px;
-  width: 230px;
-  background: #fff;
-  border: 1px solid var(--color-rule);
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.12);
-}
-.kn-share-title {
-  font-family: var(--font-ui);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-ink-faint);
-  margin-bottom: 10px;
-}
-.kn-share-chip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  transition: filter 0.2s;
-}
-.kn-share-chip:hover { filter: brightness(1.08); }
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Hero image wrapper (aspect-ratio trick — cleaner than Tailwind here)
-───────────────────────────────────────────────────────────────────────────── */
-.kn-hero-ratio {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--color-paper-warm);
-  border-radius: 4px;
-}
-@media (min-width: 1024px) {
-  .kn-hero-ratio { aspect-ratio: 21 / 9; }
-}
-@media (max-width: 400px) {
-  .kn-hero-ratio { aspect-ratio: 4 / 3; }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Figure caption + photo credit
-───────────────────────────────────────────────────────────────────────────── */
-.kn-figcaption {
-  font-family: var(--font-ui);
-  line-height: 1.4;
-  border-left: 2px solid var(--color-accent);
-  padding-left: 12px;
-}
-.kn-figcaption p {
-  margin: 0;
-  color: var(--color-ink-soft);
-  font-size: 0.875rem;
-}
-.kn-photo-credit {
-  display: block;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-ink-faint);
-  margin-top: 4px;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Body + sidebar grid
-───────────────────────────────────────────────────────────────────────────── */
+/* ── Body + sidebar grid ──────────────────────────────────────────────────── */
 .kn-body-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -247,27 +19,24 @@
     gap: 4rem;
   }
   .kn-body-grid > aside {
-    border-left: 1px solid var(--color-rule);
+    border-left: 1px solid #e5e7eb; /* gray-200 */
     padding-left: 2.5rem;
   }
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   WordPress block content typography
-   (extensive child selectors + drop-cap — must stay in plain CSS)
-───────────────────────────────────────────────────────────────────────────── */
+/* ── WordPress block content typography ──────────────────────────────────── */
 .kn-wp-content {
   font-family: var(--font-body);
   font-size: clamp(1rem, 1.5vw, 1.125rem);
   line-height: 1.85;
-  color: var(--color-ink-soft);
+  color: #3d3935; /* ink-soft */
 }
 .kn-wp-content p       { margin-bottom: 1.5em; }
 .kn-wp-content h2 {
   font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--color-ink);
+  color: #0d0d0d;
   margin: 2.2em 0 0.7em;
   line-height: 1.2;
 }
@@ -275,40 +44,36 @@
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-ink);
+  color: #0d0d0d;
   margin: 1.8em 0 0.6em;
 }
 .kn-wp-content blockquote {
   margin: 2em 0;
   padding: 1.25em 1.5em;
-  border-left: 4px solid var(--color-accent);
-  background: var(--color-accent-pale);
+  border-left: 4px solid #dc2626; /* red-600 */
+  background: #fef2f2;            /* red-50 */
   font-style: italic;
-  color: var(--color-ink-soft);
+  color: #3d3935;
   border-radius: 0 4px 4px 0;
 }
 .kn-wp-content blockquote p { margin: 0; }
-.kn-wp-content a {
-  color: var(--color-accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.kn-wp-content a:hover   { color: var(--color-accent-dark); }
-.kn-wp-content img       { width: 100%; height: auto; border-radius: 4px; margin: 1.5em 0; }
+.kn-wp-content a            { color: #dc2626; text-decoration: underline; text-underline-offset: 2px; }
+.kn-wp-content a:hover      { color: #b91c1c; }
+.kn-wp-content img          { width: 100%; height: auto; border-radius: 4px; margin: 1.5em 0; }
 .kn-wp-content ul,
-.kn-wp-content ol        { margin: 1em 0 1.5em 1.5em; }
-.kn-wp-content li        { margin-bottom: 0.4em; }
-.kn-wp-content figure    { margin: 2em 0; }
+.kn-wp-content ol           { margin: 1em 0 1.5em 1.5em; }
+.kn-wp-content li           { margin-bottom: 0.4em; }
+.kn-wp-content figure       { margin: 2em 0; }
 .kn-wp-content figcaption {
   font-family: var(--font-ui);
   font-size: 0.75rem;
-  color: var(--color-ink-muted);
+  color: #6b7280; /* gray-500 */
   margin-top: 6px;
   padding-left: 10px;
-  border-left: 2px solid var(--color-accent);
+  border-left: 2px solid #dc2626;
 }
 
-/* Drop-cap — first letter of article */
+/* Drop-cap */
 .kn-wp-content > p:first-of-type::first-letter {
   font-family: var(--font-display);
   font-size: 4.5rem;
@@ -316,13 +81,13 @@
   line-height: 0.85;
   float: left;
   margin: 0.05em 0.15em -0.05em 0;
-  color: var(--color-ink);
+  color: #0d0d0d;
 }
 
 /* WordPress pull-quote block */
 .kn-wp-content .wp-block-pullquote {
-  border-top: 4px solid var(--color-accent);
-  border-bottom: 4px solid var(--color-accent);
+  border-top: 4px solid #dc2626;
+  border-bottom: 4px solid #dc2626;
   padding: 1.5em 0;
   text-align: center;
   margin: 2.5em 0;
@@ -332,237 +97,5 @@
   border: none;
   padding: 0;
   font-size: 1.4rem;
-  color: var(--color-ink);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Sidebar cards
-───────────────────────────────────────────────────────────────────────────── */
-.kn-sidebar-card {
-  border: 1px solid var(--color-rule);
-  border-radius: 4px;
-  background: #fff;
-  overflow: hidden;
-}
-
-/* Live pulse dot */
-.kn-live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 6px rgba(26,92,56,.5);
-  animation: kn-pulse 2s ease-in-out infinite;
-}
-
-/* Latest items */
-.kn-latest-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--color-rule);
-  text-decoration: none;
-}
-.kn-latest-item:last-child { border-bottom: none; }
-
-.kn-latest-num {
-  flex-shrink: 0;
-  margin-top: 2px;
-  font-family: var(--font-ui);
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--color-rule);
-  min-width: 22px;
-  transition: color 0.15s;
-}
-
-.kn-latest-cat {
-  display: block;
-  margin-bottom: 4px;
-  font-family: var(--font-ui);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-}
-.kn-latest-headline {
-  font-family: var(--font-display);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--color-ink);
-  margin: 0;
-  transition: color 0.15s;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Related items */
-.kn-related-item {
-  display: flex;
-  gap: 12px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--color-rule);
-  text-decoration: none;
-}
-.kn-related-item:last-child { border-bottom: none; }
-
-.kn-related-thumb {
-  position: relative;
-  flex-shrink: 0;
-  width: 72px;
-  height: 56px;
-  border-radius: 4px;
-  background: var(--color-paper-warm);
-  overflow: hidden;
-}
-.kn-related-headline {
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--color-ink);
-  margin: 0;
-  transition: color 0.15s;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Tag chips */
-.kn-tag-chip {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-family: var(--font-ui);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--color-ink-soft);
-  background: var(--color-paper-warm);
-  border: 1px solid var(--color-rule);
-  text-decoration: none;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-}
-.kn-tag-chip:hover {
-  background: var(--color-accent);
-  color: #fff;
-  border-color: var(--color-accent);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Newsletter sidebar box
-───────────────────────────────────────────────────────────────────────────── */
-.kn-newsletter-tag {
-  font-family: var(--font-ui);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-  margin-bottom: 6px;
-}
-.kn-newsletter-heading {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #fdfcfb;
-  line-height: 1.2;
-  margin-bottom: 8px;
-}
-.kn-newsletter-body {
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  color: rgba(253,252,251,.6);
-  line-height: 1.5;
-  margin-bottom: 1rem;
-}
-.kn-newsletter-btn {
-  display: block;
-  text-align: center;
-  padding: 10px 0;
-  border-radius: 4px;
-  background: var(--color-accent);
-  color: #fff;
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-decoration: none;
-  transition: background 0.2s;
-}
-.kn-newsletter-btn:hover { background: var(--color-accent-dark); }
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Author bio footer
-───────────────────────────────────────────────────────────────────────────── */
-.kn-bio-name {
-  display: block;
-  margin-bottom: 6px;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--color-ink);
-  text-decoration: none;
-  transition: color 0.15s;
-}
-.kn-bio-name:hover { color: var(--color-accent); }
-
-.kn-bio-text {
-  font-family: var(--font-body);
-  font-size: 0.875rem;
-  line-height: 1.65;
-  color: var(--color-ink-soft);
-  margin-bottom: 12px;
-}
-.kn-bio-link {
-  font-family: var(--font-ui);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-  text-decoration: none;
-  transition: color 0.15s;
-}
-.kn-bio-link:hover { color: var(--color-accent-dark); }
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Back-to-top FAB
-───────────────────────────────────────────────────────────────────────────── */
-.kn-back-top {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  z-index: 40;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-ink);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0,0,0,.2);
-  transition: background 0.2s, transform 0.2s;
-}
-.kn-back-top:hover {
-  background: var(--color-accent);
-  transform: translateY(-2px);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Mobile typography guards
-───────────────────────────────────────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .kn-headline { font-size: 1.75rem; }
+  color: #0d0d0d;
 }

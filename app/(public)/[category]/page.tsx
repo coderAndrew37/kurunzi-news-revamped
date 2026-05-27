@@ -5,6 +5,7 @@ import NewsSection from "@/app/_components/wordpress/WPNewsSection";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import AdPlaceholder from "@/app/_components/wordpress/AdPlaceholder";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -28,26 +29,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const FIRST_SECTION_SIZE = 8;
 
-// ─── Reusable ad placeholder ──────────────────────────────────────────────────
-function AdPlaceholder({ label }: { label: string }) {
-  return (
-    <div className="w-full border-y" style={{ borderColor: "var(--rule)", background: "var(--paper-warm)" }}>
-      <div className="max-w-[1140px] mx-auto px-4 sm:px-6 py-3">
-        <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-center mb-2" style={{ color: "var(--ink-faint)" }}>
-          Advertisement
-        </p>
-        <div
-          className="w-full h-[90px] rounded flex items-center justify-center border border-dashed"
-          style={{ borderColor: "var(--rule)", background: "var(--paper)" }}
-        >
-          <span className="text-xs font-medium" style={{ color: "var(--ink-faint)" }}>
-            {label}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default async function CategoryPage({ params }: PageProps) {
   const { category: categorySlug } = await params;

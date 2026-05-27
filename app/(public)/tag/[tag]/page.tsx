@@ -111,7 +111,7 @@ export default async function TagPage({ params, searchParams }: PageProps) {
 
       {/* ── Content ───────────────────────────────────────────────────────── */}
       <div className="max-w-[760px] mx-auto px-4 sm:px-6 py-6">
-        <div className="rounded-lg shadow-sm border border-gray-100 bg-white divide-y divide-gray-100 px-4 sm:px-6">
+        <div className=" divide-y divide-gray-100 px-4 sm:px-6">
           {posts.map((post, index) => (
             <WPPostListItem
               key={post.slug}

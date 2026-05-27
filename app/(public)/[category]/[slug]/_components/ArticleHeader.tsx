@@ -1,4 +1,7 @@
 // app/(public)/wordpress/[category]/[slug]/_components/ArticleHeader.tsx
+// Byline row: avatar + name + meta + share/bookmark actions.
+// "use client" kept because ArticleShareButton and ArticleBookmarkButton are interactive.
+
 "use client";
 
 import Link from "next/link";
@@ -33,7 +36,6 @@ export default function ArticleHeader({ article }: Props) {
   const authorNode = article.author?.node;
   const pub = new Date(article.date);
 
-  // ✅ Correct path: article.articleFields.newsData (not article.newsData)
   const isBreaking = article.articleFields?.newsData?.isBreaking ?? false;
   const lede =
     article.articleFields?.newsData?.theLede ||
@@ -45,42 +47,65 @@ export default function ArticleHeader({ article }: Props) {
     month: "long",
     day: "numeric",
   });
-  const readingTime = calcReadingTime(article.content);
+  const readingTime = calcReadingTime(article.content ?? "");
   const timeAgo = getTimeAgo(pub);
 
   return (
     <header className="max-w-[1140px] mx-auto px-4 sm:px-6 pt-10 pb-8">
-      <div className="max-w-[720px] mx-auto">
+      <div className="max-w-[720px]">
 
-        {/* Kicker */}
+        {/* ── Kicker — category pill ───────────────────────────────────── */}
         {primaryCategory && (
-          <Link href={`/${primaryCategory.slug}`} className="kn-kicker">
+          <Link
+            href={`/${primaryCategory.slug}`}
+            className="inline-block mb-4 pb-1.5 font-bold text-[11px] uppercase tracking-[0.18em] text-red-600 border-b-2 border-red-600 hover:text-red-700 hover:border-red-700 transition-colors no-underline"
+            style={{ fontFamily: "var(--font-ui)" }}
+          >
             {primaryCategory.name}
           </Link>
         )}
 
-        {/* Breaking badge */}
+        {/* ── Breaking badge ───────────────────────────────────────────── */}
         {isBreaking && (
           <div className="flex items-center gap-2 mb-4">
-            <span className="kn-breaking-badge">
-              <span className="kn-pulse-dot" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white text-[10px] font-bold uppercase tracking-[0.18em] rounded-sm"
+              style={{ fontFamily: "var(--font-ui)" }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               Breaking
             </span>
           </div>
         )}
 
-        {/* Headline */}
-        <h1 className="kn-headline">{article.title}</h1>
+        {/* ── Headline ─────────────────────────────────────────────────── */}
+        <h1
+          className="mb-5 font-black leading-[1.1] tracking-[-0.025em] text-gray-900"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(1.85rem, 4.5vw, 3rem)",
+          }}
+        >
+          {article.title}
+        </h1>
 
-        {/* Deck / lede */}
-        {lede && <p className="kn-deck">{lede}</p>}
+        {/* ── Deck / lede ──────────────────────────────────────────────── */}
+        {lede && (
+          <p
+            className="mb-7 pl-4 border-l-[3px] border-gray-200 italic text-gray-600 leading-relaxed"
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: "clamp(1rem, 2vw, 1.2rem)",
+            }}
+          >
+            {lede}
+          </p>
+        )}
 
-        {/* Byline row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-5 border-t border-[var(--rule)]">
+        {/* ── Byline row ───────────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-5 border-t border-gray-200">
 
-          {/* Author */}
+          {/* Author block */}
           <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border-2 border-[var(--rule)]">
+            <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border-2 border-gray-200">
               <SkeletonImage
                 src={authorNode?.avatar?.url ?? null}
                 alt={authorNode?.name ?? "Author"}
@@ -90,25 +115,39 @@ export default function ArticleHeader({ article }: Props) {
 
             <div>
               {authorNode ? (
-                <Link href={`/author/${authorNode.slug}`} className="kn-byline-author">
+                <Link
+                  href={`/author/${authorNode.slug}`}
+                  className="block text-[13px] font-bold text-gray-900 hover:text-red-600 transition-colors no-underline"
+                  style={{ fontFamily: "var(--font-ui)" }}
+                >
                   {authorNode.name}
                 </Link>
               ) : (
-                <span className="kn-byline-author">Editorial</span>
+                <span
+                  className="block text-[13px] font-bold text-gray-900"
+                  style={{ fontFamily: "var(--font-ui)" }}
+                >
+                  Editorial
+                </span>
               )}
-              <div className="kn-meta">
-                <Calendar size={11} />
-                <span>{formattedDate}</span>
-                <span className="text-[var(--ink-faint)]">·</span>
-                <Clock size={11} />
+
+              {/* Meta row */}
+              <div
+                className="flex items-center gap-1.5 mt-1 text-[11px] text-gray-500"
+                style={{ fontFamily: "var(--font-ui)" }}
+              >
+                <Calendar size={11} aria-hidden="true" />
+                <time dateTime={article.date}>{formattedDate}</time>
+                <span aria-hidden="true" className="text-gray-300">·</span>
+                <Clock size={11} aria-hidden="true" />
                 <span>{readingTime} min read</span>
-                <span className="text-[var(--ink-faint)]">·</span>
+                <span aria-hidden="true" className="text-gray-300">·</span>
                 <span>{timeAgo}</span>
               </div>
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Share / bookmark actions */}
           <div className="flex items-center gap-2">
             <ArticleShareButton title={article.title} />
             <ArticleBookmarkButton slug={article.slug} />

@@ -1,4 +1,7 @@
 // app/(public)/wordpress/[category]/[slug]/_components/ArticleBody.tsx
+// Article body: WordPress HTML content split for inline related insertion,
+// followed by categories + tag chips.
+
 import Link from "next/link";
 import ArticleRelatedInline from "./ArticleRelatedInline";
 import { WPPostNode } from "@/lib/wordpress/types";
@@ -11,9 +14,7 @@ export default function ArticleBody({ article }: Props) {
   const categories = article.categories?.nodes ?? [];
   const tags = article.tags?.nodes ?? [];
 
-  // Transform related articles safely
   const rawRelated = article.articleFields?.relatedArticles?.nodes ?? [];
-
   const relatedPosts = rawRelated.map((related) => ({
     title: related.title,
     slug: related.slug,
@@ -22,15 +23,12 @@ export default function ArticleBody({ article }: Props) {
   }));
 
   const contentHtml = article.content || "";
-
-  // Split content for inline insertion
   const paragraphs = contentHtml
     .split("</p>")
     .filter((p) => p.trim().length > 10);
 
   return (
     <main className="min-w-0">
-      {/* First part of content */}
       <div
         className="kn-wp-content"
         dangerouslySetInnerHTML={{
@@ -38,12 +36,10 @@ export default function ArticleBody({ article }: Props) {
         }}
       />
 
-      {/* Inline Related Articles (PD Style) */}
       {relatedPosts.length > 0 && (
         <ArticleRelatedInline relatedPosts={relatedPosts} />
       )}
 
-      {/* Remaining content */}
       <div
         className="kn-wp-content"
         dangerouslySetInnerHTML={{
@@ -53,8 +49,11 @@ export default function ArticleBody({ article }: Props) {
 
       {/* Topics / Tags */}
       {(categories.length > 0 || tags.length > 0) && (
-        <div className="mt-14 pt-6 border-t border-[var(--rule)]">
-          <p className="mb-3 font-['Barlow_Condensed'] text-[10px] font-bold tracking-[0.18em] uppercase text-[var(--ink-faint)]">
+        <div className="mt-14 pt-6 border-t border-gray-200">
+          <p
+            className="mb-3 text-[10px] font-bold tracking-[0.18em] uppercase text-gray-400"
+            style={{ fontFamily: "var(--font-ui)" }}
+          >
             Topics
           </p>
           <div className="flex flex-wrap gap-2">
@@ -62,7 +61,8 @@ export default function ArticleBody({ article }: Props) {
               <Link
                 key={cat.slug}
                 href={`/${cat.slug}`}
-                className="kn-tag-chip"
+                className="inline-block px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-wide text-gray-600 bg-gray-50 border border-gray-200 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors no-underline"
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 {cat.name}
               </Link>
@@ -71,7 +71,8 @@ export default function ArticleBody({ article }: Props) {
               <Link
                 key={tag.slug}
                 href={`/tag/${tag.slug}`}
-                className="kn-tag-chip"
+                className="inline-block px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-wide text-gray-600 bg-gray-50 border border-gray-200 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors no-underline"
+                style={{ fontFamily: "var(--font-ui)" }}
               >
                 #{tag.name}
               </Link>
