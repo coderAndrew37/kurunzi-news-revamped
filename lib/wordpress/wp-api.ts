@@ -183,12 +183,13 @@ export const QUERIES = {
   //   WPGraphQL return all terms and push the >0 guard into TypeScript where we
   //   control coercion and can emit diagnostic logs.
   //
-  // REMOVED: orderby: COUNT, order: DESC
-  //   This orderby path uses the same stale DB column. With a desynced count it
-  //   produces an unstable sort and, when combined with hideEmpty, triggers a
-  //   WPGraphQL SQL JOIN that amplifies the count-column bug. Sorting is now
-  //   done in getNavCategories() where count has already been coerced to a safe
-  //   integer.
+  // RESTORED: orderby: COUNT, order: DESC
+  //   Now that wp_term_taxonomy.count has been resynced via wp_update_term_count_now(),
+  //   this ordering is reliable again. Fetching count-descending from WPGraphQL
+  //   means the 50 nodes that arrive are already the most-posted categories, so
+  //   even if the taxonomy grows large, Football/Athletics/Rugby are guaranteed
+  //   to be in the payload window. The TypeScript .sort() in getNavCategories()
+  //   is kept as a redundant safety net in case of future partial desyncs.
   //
   // CHANGED: first: 30 → first: 50
   //   Without hideEmpty pre-filtering we receive system terms (uncategorized,
@@ -206,7 +207,7 @@ export const QUERIES = {
     query GetNavCategories {
       categories(
         first: 50
-        where: { orderby: NAME, order: ASC }
+        where: { orderby: COUNT, order: DESC }
       ) {
         nodes {
           name
