@@ -1,6 +1,5 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
 
 interface SkeletonImageProps {
   src?: string | null;
@@ -19,7 +18,6 @@ export default function SkeletonImage({
   caption,
   credit,
 }: SkeletonImageProps) {
-  const [isLoaded, setIsLoaded] = useState(false);
 
   // Use native <img> in development, next/image in production
   const isDev = process.env.NODE_ENV === "development";

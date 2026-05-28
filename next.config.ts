@@ -39,6 +39,17 @@ const nextConfig: NextConfig = {
       protocol: "https",
       hostname: "secure.gravatar.com",
     },
+    {
+        protocol: 'https',
+        hostname: 'sportscms.kurunzinews.com',
+        pathname: '/**',
+      },
+      // Keep your old entries below if needed for fallback caching
+      {
+        protocol: 'https',
+        hostname: 'sports.kurunzinews.com',
+        pathname: '/**',
+      }
   ],
 },
 
