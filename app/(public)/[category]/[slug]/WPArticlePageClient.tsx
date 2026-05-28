@@ -2,16 +2,15 @@
 
 import "./article-page.css";
 
-import { WPPostNode, SportsPost } from "@/lib/wordpress/types";
-import ArticleProgressBar from "./_components/ArticleProgressBar";
-import ArticleBreadcrumb from "./_components/ArticleBreadcrumb";
-import ArticleHeader from "./_components/ArticleHeader";
-import ArticleHero from "./_components/ArticleHero";
-import ArticleBody from "./_components/ArticleBody";
-import ArticleSidebar from "./_components/ArticleSidebar";
+import NewsSection from "@/app/_components/wordpress/WPNewsSection";
+import { SportsPost, WPPostNode } from "@/lib/wordpress/types";
 import ArticleAuthorBio from "./_components/ArticleAuthorBio";
 import ArticleBackToTop from "./_components/ArticleBackToTop";
-import NewsSection from "@/app/_components/wordpress/WPNewsSection";
+import ArticleBody from "./_components/ArticleBody";
+import ArticleHeader from "./_components/ArticleHeader";
+import ArticleHero from "./_components/ArticleHero";
+import ArticleProgressBar from "./_components/ArticleProgressBar";
+import ArticleSidebar from "./_components/ArticleSidebar";
 
 interface Props {
   article: WPPostNode;
@@ -31,7 +30,6 @@ export default function ArticlePageClient({
   return (
     <article className="min-h-screen bg-[var(--paper)] text-[var(--ink)]">
       <ArticleProgressBar />
-      <ArticleBreadcrumb primaryCategory={primaryCategory} />
       <ArticleHeader article={article} />
       <ArticleHero article={article} />
 
