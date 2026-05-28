@@ -174,30 +174,45 @@ export async function getAuthorProfile(
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
 export async function getNavCategories(): Promise<NavCategory[]> {
-  const data = await fetchAPI<{
-    categories: { nodes: WPCategoryWithMeta[] };
-  }>(QUERIES.GET_NAV_CATEGORIES, {}, 3600, ["navigation"]);
+  try {
+    const data = await fetchAPI<GetNavCategoriesResponse>(
+      QUERIES.GET_NAV_CATEGORIES, 
+      {}, 
+      3600, 
+      ["navigation"]
+    );
 
-  const now = Date.now();
-  const DAY = 86_400_000;
+    const nodes: WPGraphQLCategoryNode[] = data.categories?.nodes ?? [];
 
-  return (data.categories?.nodes ?? [])
-    .map((cat) => {
-      const latestDate = cat.posts?.nodes?.[0]?.date;
-      const ageMs = latestDate
-        ? now - new Date(latestDate).getTime()
-        : Infinity;
+    const items: NavCategory[] = nodes
+      .filter((cat: WPGraphQLCategoryNode) => {
+        const hasPosts = cat.count !== null && cat.count > 0;
+        const isNotUncategorized = cat.slug !== "uncategorized" && cat.slug !== "general";
+        return hasPosts && isNotUncategorized;
+      })
+      .map((cat: WPGraphQLCategoryNode) => ({
+        title: cat.name,
+        slug: cat.slug,
+      }))
+      .slice(0, 6);
 
-      // Recency bonus: the fresher the latest article, the higher the score
-      const recencyBonus = ageMs < 7 * DAY ? 50 : ageMs < 30 * DAY ? 20 : 0;
+    if (items.length > 0) {
+      return items;
+    }
 
-      const score = (cat.count ?? 0) + recencyBonus;
+    console.warn("[Build Warning]: Dynamic categories array compiled empty. Dropping to fallback items.");
+  } catch (error) {
+    console.error("[Build Warning]: Failed to fetch navigation categories from WordPress backend.", error);
+  }
 
-      return { title: cat.name, slug: cat.slug, score };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map(({ title, slug }) => ({ title, slug }));
+  // Type-safe fallback structures matching NavCategory[]
+  return [
+    { title: "Football", slug: "football" },
+    { title: "Athletics", slug: "athletics" },
+    { title: "Rugby", slug: "rugby" },
+    { title: "Africa", slug: "africa" },
+    { title: "Featured", slug: "featured" },
+  ];
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────
