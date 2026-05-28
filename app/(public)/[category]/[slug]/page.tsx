@@ -10,12 +10,22 @@ interface PageParams {
 }
 
 // ─── STATIC GENERATION ───────────────────────────────────────────────────────
+// Allow pages not generated at build-time to render on-demand via ISR
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
-  const posts = await getAllPostSlugs();
-  return posts.map((post) => ({
-    category: post.category,
-    slug: post.slug,
-  }));
+  try {
+    const posts = await getAllPostSlugs();
+    // Only pre-build the top 20 most recent items to keep the build snappy
+    return posts.slice(0, 20).map((post) => ({
+      category: post.category,
+      slug: post.slug,
+    }));
+  } catch (error) {
+    console.warn("[Build Warning]: Failed to fetch static paths, falling back to fully dynamic compilation.", error);
+    // If the backend ever blips during a build, return an empty array so Vercel passes cleanly
+    return [];
+  }
 }
 
 // ─── METADATA ────────────────────────────────────────────────────────────────
@@ -80,7 +90,7 @@ export default async function ArticlePage({
     .slice(0, 3);
 
   // siteUrl from env — never import from next-sitemap.config (it's not a TS module)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kurunzisports.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sports.kurunzinews.com";
 
   const jsonLd = {
     "@context": "https://schema.org",

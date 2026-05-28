@@ -235,7 +235,7 @@ export const QUERIES = {
 
   GET_ALL_SLUGS: `
     query GetAllPostSlugs {
-      posts(first: 10000, where: { status: PUBLISH }) {
+      posts(first: 50, where: { status: PUBLISH }) {
         nodes {
           slug date
           categories { nodes { slug } }
