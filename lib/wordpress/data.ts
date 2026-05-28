@@ -2,7 +2,7 @@
 // All data-fetching functions. Import from here in pages/components.
 // Never call fetchAPI directly from pages.
 
-import { fetchAPI, QUERIES } from "./wp-api";
+import { fetchAPI, QUERIES, getNavCategories } from "./wp-api";
 import type {
   AuthorProfile,
   NavCategory,
@@ -12,6 +12,9 @@ import type {
   TagInfo,
   WPPostNode,
 } from "./types";
+
+// Re-export getNavCategories from wp-api so consumers keep importing from data.ts
+export { getNavCategories };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -48,12 +51,6 @@ interface WPUserNode {
   };
 }
 
-interface WPCategoryWithMeta {
-  name: string;
-  slug: string;
-  count: number;
-  posts: { nodes: Array<{ date: string }> };
-}
 // ─── Posts ────────────────────────────────────────────────────────────────────
 
 export async function getSportsPosts(): Promise<SportsPost[]> {
@@ -171,50 +168,6 @@ export async function getAuthorProfile(
   };
 }
 
-// ─── Navigation ───────────────────────────────────────────────────────────────
-
-export async function getNavCategories(): Promise<NavCategory[]> {
-  try {
-    const data = await fetchAPI<GetNavCategoriesResponse>(
-      QUERIES.GET_NAV_CATEGORIES, 
-      {}, 
-      3600, 
-      ["navigation"]
-    );
-
-    const nodes: WPGraphQLCategoryNode[] = data.categories?.nodes ?? [];
-
-    const items: NavCategory[] = nodes
-      .filter((cat: WPGraphQLCategoryNode) => {
-        const hasPosts = cat.count !== null && cat.count > 0;
-        const isNotUncategorized = cat.slug !== "uncategorized" && cat.slug !== "general";
-        return hasPosts && isNotUncategorized;
-      })
-      .map((cat: WPGraphQLCategoryNode) => ({
-        title: cat.name,
-        slug: cat.slug,
-      }))
-      .slice(0, 6);
-
-    if (items.length > 0) {
-      return items;
-    }
-
-    console.warn("[Build Warning]: Dynamic categories array compiled empty. Dropping to fallback items.");
-  } catch (error) {
-    console.error("[Build Warning]: Failed to fetch navigation categories from WordPress backend.", error);
-  }
-
-  // Type-safe fallback structures matching NavCategory[]
-  return [
-    { title: "Football", slug: "football" },
-    { title: "Athletics", slug: "athletics" },
-    { title: "Rugby", slug: "rugby" },
-    { title: "Africa", slug: "africa" },
-    { title: "Featured", slug: "featured" },
-  ];
-}
-
 // ─── Search ───────────────────────────────────────────────────────────────────
 
 export async function searchArticles(
@@ -231,9 +184,7 @@ export async function searchArticles(
 
 // ─── Sitemap ──────────────────────────────────────────────────────────────────
 
-export async function getAllPostSlugs(): Promise<
-  { slug: string; date: string; category: string }[]
-> {
+export async function getAllPostSlugs(): Promise<{ slug: string; date: string; category: string }[]> {
   const data = await fetchAPI<{ posts: { nodes: SitemapPostNode[] } }>(
     QUERIES.GET_ALL_SLUGS,
     {},

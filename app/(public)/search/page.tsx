@@ -4,6 +4,13 @@
 // Pagination via WPPagination (variant="tailwind", extraParams={{ q }}).
 // PD title pattern: first result's title is the page <title> on page 1.
 // Search pages are noindex.
+//
+// FIXES vs previous version:
+//   1. ResultsList: removed double space in className (" divide-y" → "divide-y").
+//   2. generateMetadata: searchParams prop now uses explicit named interface
+//      (avoids inline anonymous type that confuses Turbopack's validator — same
+//      fix applied to author/page.tsx for getCursorForPage).
+//   3. SearchPage: searchParams prop aligned to the same named interface.
 
 import WPPostListItem from '@/app/_components/wordpress/WPArchiveListItem'
 import WPPagination from '@/app/_components/wordpress/WPPagination'
@@ -17,13 +24,24 @@ export const dynamic = 'force-dynamic'
 
 const PER_PAGE = 10
 
+// ── Props ─────────────────────────────────────────────────────────────────────
+// Explicit named interface keeps the Turbopack validator happy and makes the
+// shape reusable across generateMetadata and the default export.
+
+interface SearchPageSearchParams {
+  q?: string
+  page?: string
+}
+
+interface SearchPageProps {
+  searchParams: Promise<SearchPageSearchParams>
+}
+
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({
   searchParams,
-}: {
-  searchParams: Promise<{ q?: string; page?: string }>
-}): Promise<Metadata> {
+}: SearchPageProps): Promise<Metadata> {
   const { q, page: pageParam } = await searchParams
   const query = (q ?? '').trim()
   const page = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
@@ -36,7 +54,9 @@ export async function generateMetadata({
     }
   }
 
-  // searchArticles returns SportsPost[] — memoized with page component's call
+  // searchArticles is correctly deduped by Next.js fetch memoisation:
+  // both this call and the page component's call POST the identical query
+  // string + variables to WPGraphQL, so only one network request is made.
   const allResults: SportsPost[] = await searchArticles(query)
   const pageResults = allResults.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
@@ -129,9 +149,10 @@ function SearchPrompt() {
 
 // ── Results list ──────────────────────────────────────────────────────────────
 
+// FIX: removed leading double space from className ("" divide-y" → "divide-y").
 function ResultsList({ posts }: { posts: SportsPost[] }) {
   return (
-    <div className=" divide-y divide-gray-100 px-4 sm:px-6">
+    <div className="divide-y divide-gray-100 px-4 sm:px-6">
       {posts.map((post, index) => (
         <WPPostListItem
           key={post.slug}
@@ -146,16 +167,13 @@ function ResultsList({ posts }: { posts: SportsPost[] }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; page?: string }>
-}) {
+export default async function SearchPage({ searchParams }: SearchPageProps) {
   const { q, page: pageParam } = await searchParams
   const query = (q ?? '').trim()
   const currentPage = Math.max(1, parseInt(pageParam ?? '1', 10) || 1)
 
-  // searchArticles returns SportsPost[] — slice here for the current page
+  // searchArticles returns SportsPost[] — slice here for the current page.
+  // Empty query skips the fetch entirely (no WPGraphQL call made).
   const allResults: SportsPost[] = query ? await searchArticles(query) : []
 
   const totalCount = allResults.length

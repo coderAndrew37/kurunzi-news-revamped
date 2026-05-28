@@ -7,9 +7,9 @@ User-agent: Googlebot-Image
 Allow: /
 
 # Host
-Host: https://kurunzinews.co.ke
+Host: https://sports.kurunzinews.com
 
 # Sitemaps
-Sitemap: https://kurunzinews.co.ke/sitemap.xml
-Sitemap: https://kurunzinews.co.ke/server-sitemap.xml
-Sitemap: https://kurunzinews.co.ke/news-sitemap.xml
+Sitemap: https://sports.kurunzinews.com/sitemap.xml
+Sitemap: https://sports.kurunzinews.com/server-sitemap.xml
+Sitemap: https://sports.kurunzinews.com/news-sitemap.xml
