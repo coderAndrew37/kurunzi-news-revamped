@@ -157,11 +157,12 @@ export default function ArticleHero({ article }: Props) {
         <figure className="mb-8">
           <div className="relative w-full overflow-hidden rounded-sm bg-gray-100 aspect-video">
             <SkeletonImage
-              src={img.sourceUrl}
-              alt={img.altText ?? decodedTitle}
-              priority
-              className="object-cover"
-            />
+  src={img.sourceUrl}
+  alt={img.altText ?? decodedTitle}
+  priority
+  sizes="(max-width: 1024px) 100vw, 800px" /* Tells Next.js to pull crisp resolution for the wide main column */
+  className="object-cover"
+/>
           </div>
 
           {img.caption && (

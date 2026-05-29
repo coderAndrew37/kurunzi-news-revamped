@@ -80,8 +80,8 @@
 
 /* ── Content Image & Block Handling ──────────────────────────────────────── */
 .kn-wp-content img { 
-  width: 100%; 
-  height: auto; 
+  width: 100% !important; 
+  height: auto !important; 
   border-radius: 8px; 
   margin: 1.5em 0; 
 }
@@ -96,7 +96,9 @@
 }
 
 .kn-wp-content figure { 
-  margin: 2em 0; 
+  max-width: 100% !important; /* Overrides hardcoded WP style="width: XXXpx" */
+  width: 100% !important;     /* Forces the layout track container to adapt */
+  margin: 2em 0;
 }
 
 .kn-wp-content figcaption {

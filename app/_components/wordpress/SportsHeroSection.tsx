@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { SportsPost } from "@/lib/wordpress/types";
-import ArticleLink from "./WPArticleLink";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import SkeletonImage from "../ui/SkeletonImage";
+import ArticleLink from "./WPArticleLink";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,19 +32,7 @@ interface Props {
   categorySlug?: string;
 }
 
-// ─── BBC-style editorial algorithm ────────────────────────────────────────────
-//
-// Priority tiers (mimics how BBC Sport / Guardian editors surface content):
-//
-//  Tier 1 — Breaking news: isBreaking flag, always leads if present
-//  Tier 2 — Hero-flagged: isHero === true, editorially promoted stories
-//  Tier 3 — Recency: most recent posts fill remaining slots
-//
-// The carousel gets 5 posts. The bottom row gets the next 3 distinct posts.
-// We deduplicate so a post never appears in both rows.
-//
-// This mirrors newsroom logic: editors flag top stories (hero/breaking),
-// recency fills the rest, and the algorithm respects both signals.
+// ─── Editorial Selection Algorithm ────────────────────────────────────────────
 
 function selectHeroPosts(posts: SportsPost[]): {
   carousel: SportsPost[];
@@ -61,7 +50,6 @@ function selectHeroPosts(posts: SportsPost[]): {
     return out;
   };
 
-  // Sort helpers
   const byDate = (a: SportsPost, b: SportsPost) =>
     new Date(b.date).getTime() - new Date(a.date).getTime();
 
@@ -73,18 +61,14 @@ function selectHeroPosts(posts: SportsPost[]): {
     .filter((p) => !p.newsData?.isHero && !p.newsData?.isBreaking)
     .sort(byDate);
 
-  // Carousel: 1 breaking max, then hero, then recent
   const carouselPool = [...breaking.slice(0, 1), ...hero, ...recent];
   const carousel = pick(carouselPool, 5);
 
-  // Secondary: hero/recent not already used, up to 3
   const secondaryPool = [...hero, ...recent, ...breaking];
   const secondary = pick(secondaryPool, 3);
 
   return { carousel, secondary };
 }
-
-// ─── Placeholder matches — swap with real API data later ─────────────────────
 
 const PLACEHOLDER_MATCHES: Match[] = [
   {
@@ -146,7 +130,6 @@ function MatchRow({ match }: { match: Match }) {
 
   return (
     <div className="flex flex-col gap-2 py-3 border-b border-gray-100 last:border-0">
-      {/* Competition + status */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
           {match.competition}
@@ -164,7 +147,6 @@ function MatchRow({ match }: { match: Match }) {
         )}
       </div>
 
-      {/* Home */}
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
           <span className="text-[8px] font-black text-gray-500">
@@ -175,15 +157,12 @@ function MatchRow({ match }: { match: Match }) {
           {match.homeTeam}
         </span>
         {hasScore && match.homeScore !== undefined && (
-          <span
-            className={`text-[13px] font-bold tabular-nums ${isLive ? "text-gray-900" : "text-gray-500"}`}
-          >
+          <span className={`text-[13px] font-bold tabular-nums ${isLive ? "text-gray-900" : "text-gray-500"}`}>
             {match.homeScore}
           </span>
         )}
       </div>
 
-      {/* Away */}
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
           <span className="text-[8px] font-black text-gray-500">
@@ -194,15 +173,12 @@ function MatchRow({ match }: { match: Match }) {
           {match.awayTeam}
         </span>
         {hasScore && match.awayScore !== undefined && (
-          <span
-            className={`text-[13px] font-bold tabular-nums ${isLive ? "text-gray-900" : "text-gray-500"}`}
-          >
+          <span className={`text-[13px] font-bold tabular-nums ${isLive ? "text-gray-900" : "text-gray-500"}`}>
             {match.awayScore}
           </span>
         )}
       </div>
 
-      {/* Kickoff — upcoming only */}
       {!hasScore && (
         <div className="flex items-center gap-1.5 text-gray-400 pt-0.5">
           <Clock size={9} />
@@ -226,12 +202,8 @@ function CarouselSlide({ post, index }: { post: SportsPost; index: number }) {
       slug={post.slug}
       className="group relative block w-full h-full flex-shrink-0"
     >
-      {/* SkeletonImage fills the entire slide as a background */}
       <div className="absolute inset-0 overflow-hidden">
         {post.featuredImage ? (
-          // We need fill behaviour here, so we go direct to next/image
-          // SkeletonImage's figure/aspect wrapper doesn't suit full-bleed carousel slides.
-          // We replicate its dev/prod logic inline for the carousel only.
           <CarouselImage
             src={post.featuredImage}
             alt={post.title}
@@ -249,9 +221,9 @@ function CarouselSlide({ post, index }: { post: SportsPost; index: number }) {
         )}
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
-      <div className="absolute bottom-0 left-0 right-0 p-5 lg:p-7">
+      <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-9">
         <div className="flex items-center gap-2 mb-2">
           {post.newsData?.isBreaking && (
             <span className="bg-red-600 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm">
@@ -263,182 +235,199 @@ function CarouselSlide({ post, index }: { post: SportsPost; index: number }) {
               Top Story
             </span>
           )}
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/70">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
             {post.category}
           </span>
         </div>
 
         <h2
-          className="text-white font-bold leading-tight mb-2 group-hover:text-white/90 transition-colors"
+          className="text-white font-black leading-tight mb-2 group-hover:text-red-400 transition-colors"
           style={{
-            fontSize: "clamp(1.1rem, 2.4vw, 1.65rem)",
-            letterSpacing: "-0.02em",
+            fontSize: "clamp(1.3rem, 3vw, 2.2rem)",
+            letterSpacing: "-0.03em",
           }}
         >
           {post.title}
         </h2>
 
         {post.newsData?.theLede && (
-          <p className="text-white/60 text-sm leading-relaxed line-clamp-2 max-w-lg mb-3 italic">
+          <p className="text-white/70 text-sm leading-relaxed line-clamp-2 max-w-2xl mb-4">
             {post.newsData.theLede}
           </p>
         )}
 
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-white/50 group-hover:text-white transition-colors">
-          Read story <ChevronRight size={10} />
+        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-white group-hover:underline decoration-red-600 decoration-2">
+          Read story <ChevronRight size={12} />
         </span>
       </div>
     </ArticleLink>
   );
 }
 
-// ── Inline fill-image component for carousel (full-bleed, no aspect wrapper) ──
-function CarouselImage({
-  src,
-  alt,
-  priority,
-}: {
-  src: string;
-  alt: string;
-  priority: boolean;
-}) {
+// ── Optimized Carousel Image Handler ──────────────────────────────────────────
+
+function CarouselImage({ src, alt, priority }: { src: string; alt: string; priority: boolean }) {
   const isDev = process.env.NODE_ENV === "development";
 
   if (isDev) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={alt}
         loading={priority ? "eager" : "lazy"}
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
       />
     );
   }
 
-  // Use next/image with fill in production
-  // eslint-disable-next-line @next/next/no-img-element
   return (
-    <img
+    <Image
       src={src}
       alt={alt}
-      loading={priority ? "eager" : "lazy"}
-      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+      fill
+      priority={priority}
+      sizes="(max-width: 1024px) 100vw, 980px"
+      className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
     />
   );
 }
 
-// ─── BottomCard ───────────────────────────────────────────────────────────────
+// ─── Expanded High-Attention Secondary Card ───────────────────────────────────
 
-function BottomCard({ post }: { post: SportsPost }) {
+function SecondaryCard({ post }: { post: SportsPost }) {
   const catSlug = post.category?.toLowerCase().replace(/\s+/g, "-") ?? "news";
 
   return (
     <ArticleLink
       categorySlug={catSlug}
       slug={post.slug}
-      className="group flex items-start gap-3 p-4 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors bg-white"
+      className="group flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
     >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          {post.newsData?.isBreaking && (
-            <span className="bg-red-600 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
-              Breaking
-            </span>
-          )}
-          <span className="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">
-            {post.category}
-          </span>
-        </div>
-        <h3 className="text-[13px] font-semibold text-gray-900 leading-snug line-clamp-3 group-hover:text-gray-600 transition-colors">
-          {post.title}
-        </h3>
-        {post.newsData?.theLede && (
-          <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">
-            {post.newsData.theLede}
-          </p>
-        )}
-      </div>
-
-      {/* Thumbnail via SkeletonImage — but we need a fixed box, not aspect-ratio wrapper */}
+      {/* Significantly larger attention grabbing visual space */}
       {post.featuredImage && (
-        <div className="relative flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden bg-gray-100">
+        <div className="relative w-full aspect-[16/10] overflow-hidden bg-gray-100">
           <SkeletonImage
             src={post.featuredImage}
             alt={post.title}
-            // Override the aspect-ratio wrapper with a className that fills the container
-            className="!aspect-auto absolute inset-0 w-full h-full object-cover rounded-none"
+            sizes="(max-width: 640px) 100vw, 33vw"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </div>
       )}
+
+      <div className="p-5 flex-1 flex flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            {post.newsData?.isBreaking && (
+              <span className="bg-red-600 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+                Breaking
+              </span>
+            )}
+            <span className="block text-[10px] font-bold uppercase tracking-widest text-red-600">
+              {post.category}
+            </span>
+          </div>
+
+          <h3 className="text-[15px] font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-red-600 transition-colors">
+            {post.title}
+          </h3>
+
+          {post.newsData?.theLede && (
+            <p className="text-[12.5px] text-gray-500 mt-2 line-clamp-2 leading-relaxed">
+              {post.newsData.theLede}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400 group-hover:text-gray-900 transition-colors">
+          <span>Read Story</span>
+          <ChevronRight size={12} className="transform group-hover:translate-x-0.5 transition-transform" />
+        </div>
+      </div>
     </ArticleLink>
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main Hero Layout Container ───────────────────────────────────────────────
 
-export default function SportsHero({
-  posts,
-  categoryTitle,
-  categorySlug,
-}: Props) {
+export default function SportsHero({ posts }: Props) {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // ── BBC-style editorial selection ──────────────────────────────────────────
-  const { carousel: carouselPosts, secondary: bottomPosts } =
-    selectHeroPosts(posts);
+  const { carousel: carouselPosts, secondary: secondaryPosts } = selectHeroPosts(posts);
 
   const goTo = useCallback((index: number) => {
+    if (!carouselRef.current) return;
     setActiveSlide(index);
-    carouselRef.current?.scrollTo({
+    carouselRef.current.scrollTo({
       left: index * carouselRef.current.offsetWidth,
       behavior: "smooth",
     });
   }, []);
 
-  const prev = () => goTo(Math.max(0, activeSlide - 1));
-  const next = () => goTo(Math.min(carouselPosts.length - 1, activeSlide + 1));
+// AFTER
+const prev = () => goTo(Math.max(0, activeSlide - 1));
+const next = () => {
+  goTo(activeSlide === carouselPosts.length - 1 ? 0 : activeSlide + 1);
+};
+
+  // Autoplay Logic Stream (Pauses neatly when user hovers to interact)
+  useEffect(() => {
+    if (isHovered || carouselPosts.length <= 1) return;
+
+    const interval = setInterval(() => {
+      next();
+    }, 5000); // Transitions smoothly every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [next, isHovered, carouselPosts.length]);
 
   if (!posts.length) return null;
 
   return (
-    <section className="w-full bg-white border-b border-gray-200">
-      {/* ── Content ──────────────────────────────────────────────────────── */}
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-4 flex flex-col gap-4">
+    <section className="w-full bg-gray-50 border-b border-gray-200">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+        
         {/* ── TOP ROW ──────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 items-stretch">
-          {/* Featured Matches */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <span className="text-[13px] font-bold text-gray-900">
-                Featured matches
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-stretch">
+          {/* Featured Matchboard */}
+          <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col bg-white shadow-sm">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-gray-50/70">
+              <span className="text-[13px] font-bold text-gray-900 tracking-tight">
+                Featured Matches
               </span>
               <Link
                 href="/fixtures"
-                className="text-[11px] font-semibold text-[var(--accent)] hover:underline"
+                className="text-[11px] font-bold text-red-600 hover:underline tracking-tight"
               >
-                See full schedule →
+                Schedule →
               </Link>
             </div>
-            <div className="px-4 flex-1">
+            <div className="px-4 flex-1 flex flex-col justify-center">
               {PLACEHOLDER_MATCHES.map((match) => (
                 <MatchRow key={match.id} match={match} />
               ))}
             </div>
           </div>
 
-          {/* Carousel */}
+          {/* Carousel Viewport */}
           <div
-            className="relative rounded-xl overflow-hidden bg-gray-100"
+            className="relative rounded-xl overflow-hidden bg-gray-950 shadow-md group/carousel"
             style={{ aspectRatio: "16/9" }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
             <div
               ref={carouselRef}
-              className="flex h-full overflow-x-hidden"
+              className="flex h-full overflow-x-hidden scrollbar-none"
               style={{ scrollSnapType: "x mandatory" }}
               onScroll={(e) => {
                 const el = e.currentTarget;
-                setActiveSlide(Math.round(el.scrollLeft / el.offsetWidth));
+                if (el.offsetWidth > 0) {
+                  setActiveSlide(Math.round(el.scrollLeft / el.offsetWidth));
+                }
               }}
             >
               {carouselPosts.map((post, i) => (
@@ -452,13 +441,14 @@ export default function SportsHero({
               ))}
             </div>
 
+            {/* Nav Arrows (Hidden cleanly on mobile touch displays) */}
             {activeSlide > 0 && (
               <button
                 onClick={prev}
                 aria-label="Previous"
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 border border-gray-200 hidden sm:flex items-center justify-center shadow-md hover:bg-white transition-all opacity-0 group-hover/carousel:opacity-100"
               >
-                <ChevronLeft size={15} className="text-gray-700" />
+                <ChevronLeft size={16} className="text-gray-800" />
               </button>
             )}
 
@@ -466,50 +456,47 @@ export default function SportsHero({
               <button
                 onClick={next}
                 aria-label="Next"
-                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 border border-gray-200 flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 border border-gray-200 hidden sm:flex items-center justify-center shadow-md hover:bg-white transition-all opacity-0 group-hover/carousel:opacity-100"
               >
-                <ChevronRight size={15} className="text-gray-700" />
+                <ChevronRight size={16} className="text-gray-800" />
               </button>
             )}
 
-            {/* Dot indicators */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
+            {/* Active Pagination Bar Lines */}
+            <div className="absolute bottom-4 left-6 z-10 flex items-center gap-2">
               {carouselPosts.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => goTo(i)}
                   aria-label={`Slide ${i + 1}`}
-                  className="rounded-full border-none transition-all duration-200"
+                  className="h-1 rounded-full border-none transition-all duration-300"
                   style={{
-                    width: i === activeSlide ? 20 : 6,
-                    height: 6,
-                    background:
-                      i === activeSlide ? "#fff" : "rgba(255,255,255,0.45)",
+                    width: i === activeSlide ? 28 : 8,
+                    background: i === activeSlide ? "#dc2626" : "rgba(255,255,255,0.4)",
                   }}
                 />
               ))}
             </div>
 
-            {/* Slide counter — top right, BBC-style */}
+            {/* Counter Badge */}
             {carouselPosts.length > 1 && (
-              <div className="absolute top-3 right-3 z-10 bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full tabular-nums">
+              <div className="absolute top-4 right-4 z-10 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full tabular-nums tracking-wider">
                 {activeSlide + 1} / {carouselPosts.length}
               </div>
             )}
           </div>
         </div>
 
-        {/* ── BOTTOM ROW: up to 3 secondary leads ─────────────────────── */}
-        {bottomPosts.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {bottomPosts.map((post) => (
-              <BottomCard key={post.slug} post={post} />
+        {/* ── BOTTOM ROW: High-Attention Secondary Cards Grid ─────────────────── */}
+        {secondaryPosts.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-2">
+            {secondaryPosts.map((post) => (
+              <SecondaryCard key={post.slug} post={post} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Minimal global CSS that Tailwind cannot express */}
       <style>{`
         .live-dot {
           display: inline-block;

@@ -8,6 +8,7 @@ interface SkeletonImageProps {
   priority?: boolean;
   caption?: string;
   credit?: string;
+  sizes?: string; // Made dynamic to support layouts like your premium main column
 }
 
 export default function SkeletonImage({
@@ -17,9 +18,9 @@ export default function SkeletonImage({
   priority = false,
   caption,
   credit,
+  sizes = "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw", // Defaults to your standard card behavior
 }: SkeletonImageProps) {
 
-  // Use native <img> in development, next/image in production
   const isDev = process.env.NODE_ENV === "development";
 
   if (!src) {
@@ -37,7 +38,7 @@ export default function SkeletonImage({
     );
   }
 
-  // Development: Use regular <img> tag (bypasses localhost restrictions)
+  // Development: Bypasses domain configuration blocks smoothly
   if (isDev) {
     return (
       <figure className="w-full relative">
@@ -50,7 +51,6 @@ export default function SkeletonImage({
           />
         </div>
 
-        {/* Caption & Credit */}
         {(caption || credit) && (
           <figcaption className="mt-3 text-sm leading-relaxed text-gray-600 border-l-2 border-red-600 pl-4">
             {caption && <div dangerouslySetInnerHTML={{ __html: caption }} />}
@@ -65,7 +65,7 @@ export default function SkeletonImage({
     );
   }
 
-  // Production: Use Next.js Image (optimized)
+  // Production: Optimized Image Stream
   return (
     <figure className="w-full relative">
       <div className="relative overflow-hidden bg-[#f7f4f0] aspect-[16/9] rounded-sm">
@@ -75,11 +75,10 @@ export default function SkeletonImage({
           fill
           priority={priority}
           className={`object-cover transition duration-500 hover:scale-105 ${className}`}
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          sizes={sizes}
         />
       </div>
 
-      {/* Caption & Credit */}
       {(caption || credit) && (
         <figcaption className="mt-3 text-sm leading-relaxed text-gray-600 border-l-2 border-red-600 pl-4">
           {caption && <div dangerouslySetInnerHTML={{ __html: caption }} />}

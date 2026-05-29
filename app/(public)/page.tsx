@@ -3,14 +3,9 @@ import { getSportsPosts } from "@/lib/wordpress/data";
 import { SportsPost } from "@/lib/wordpress/types";
 import BreakingNewsTicker from "../_components/wordpress/WPBreakingNewsTicker";
 import NewsSection from "../_components/wordpress/WPNewsSection";
+import HomePageClient from  "./HomepageClient";
 
 // ─── Mirrors the hero's selectHeroPosts to derive which slugs it consumed ────
-//
-// We keep this in sync with SportsHeroSection's algorithm manually.
-// If you change the hero's tier logic, update this too.
-//
-// Hero budget: up to 5 carousel + up to 3 secondary = up to 8 slugs.
-
 function getHeroSlugs(posts: SportsPost[]): Set<string> {
   const seen = new Set<string>();
 
@@ -41,19 +36,6 @@ function getHeroSlugs(posts: SportsPost[]): Set<string> {
 }
 
 // ─── Section scoring ──────────────────────────────────────────────────────────
-//
-// Ranks each category section by three signals:
-//
-//   Recency   — how recently was the latest post published?
-//               Tiers: <1d (+100), <3d (+60), <7d (+30), <30d (+10)
-//
-//   Volume    — number of posts in the section × 5
-//               (breadth, not dominance — large categories don't crush small ones)
-//
-//   Editorial — breaking posts in this category get +40 each,
-//               hero-flagged posts get +20 each
-//               (ensures Rugby with a hero post beats Athletics with stale content)
-
 function scoreSection(posts: SportsPost[]): number {
   if (!posts.length) return 0;
 
@@ -81,12 +63,13 @@ function scoreSection(posts: SportsPost[]): number {
   return posts.length * 5 + recencyBonus + editorialBonus;
 }
 
+// ─── Main Server Component ───────────────────────────────────────────────────
 export default async function HomePage() {
   const allPosts: SportsPost[] = await getSportsPosts();
 
   if (!allPosts || allPosts.length === 0) {
     return (
-      <div className="p-20 text-center">
+      <div className="p-20 text-center font-medium text-gray-500">
         No posts found. Check WordPress connection.
       </div>
     );
@@ -105,7 +88,7 @@ export default async function HomePage() {
   }
 
   // ── Step 3: score → sort → filter thin sections ───────────────────────────
-  const sections = Array.from(categoryMap.entries())
+  const sortedSections = Array.from(categoryMap.entries())
     .map(([cat, posts]) => ({
       title: cat,
       slug: cat.toLowerCase().replace(/\s+/g, "-"),
@@ -113,29 +96,25 @@ export default async function HomePage() {
       score: scoreSection(posts),
     }))
     .sort((a, b) => b.score - a.score)
-    // Require at least 2 posts for a section to appear — 1-post sections
-    // look empty and signal a data problem rather than a real category.
     .filter((s) => s.posts.length >= 2);
 
+  // Prepare standard sub-layouts inside server context safely
+  const renderedSections = sortedSections.map((section) => ({
+    slug: section.slug,
+    render: (
+      <NewsSection
+        slug={section.slug}
+        title={section.title}
+        posts={section.posts}
+      />
+    ),
+  }));
+
   return (
-    <main
-      className="flex flex-col gap-0 pb-20"
-      style={{ background: "var(--paper)" }}
-    >
-      <BreakingNewsTicker />
-
-      <SportsHero posts={allPosts} />
-
-      {/* <WorldCupBanner /> */}
-
-      {sections.map((section) => (
-        <NewsSection
-          key={section.slug}
-          slug={section.slug}
-          title={section.title}
-          posts={section.posts}
-        />
-      ))}
-    </main>
+    <HomePageClient
+      ticker={<BreakingNewsTicker />}
+      hero={<SportsHero posts={allPosts} />}
+      sections={renderedSections}
+    />
   );
 }
