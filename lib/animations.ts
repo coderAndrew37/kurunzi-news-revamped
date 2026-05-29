@@ -6,7 +6,7 @@ import { Variants } from "framer-motion";
  * Starts incredibly fast to maintain high visual performance, 
  * then smooths out gracefully right at the end of the transition track.
  */
-export const EDITORIAL_EASE = [0.16, 1, 0.3, 1];
+export const EDITORIAL_EASE = [0.16, 1, 0.3, 1] as const;
 
 /**
  * 1. Simple Fade In
