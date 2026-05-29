@@ -1,9 +1,6 @@
 /* article-page.css
-   ONLY rules that Tailwind cannot express:
-   - Complex responsive grid with border-left on aside
-   - WordPress block content child selectors + drop-cap
-   - Fluid clamp() font sizes on kn-wp-content children
-   Everything else is in Tailwind now.
+   ONLY rules that Tailwind cannot easily express or that require 
+   global layout coordination for the headless WordPress content stream.
 */
 
 /* ── Body + sidebar grid ──────────────────────────────────────────────────── */
@@ -13,14 +10,17 @@
   gap: 3rem;
   align-items: start;
 }
+
 @media (min-width: 1024px) {
   .kn-body-grid {
-    grid-template-columns: minmax(0, 700px) 300px;
-    gap: 4rem;
+    /* Left column automatically fills remaining room; right column stays fixed at 320px */
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 3.5rem;
   }
+  
   .kn-body-grid > aside {
     border-left: 1px solid #e5e7eb; /* gray-200 */
-    padding-left: 2.5rem;
+    padding-left: 2rem;
   }
 }
 
@@ -30,8 +30,13 @@
   font-size: clamp(1rem, 1.5vw, 1.125rem);
   line-height: 1.85;
   color: #3d3935; /* ink-soft */
+  width: 100%;
 }
-.kn-wp-content p       { margin-bottom: 1.5em; }
+
+.kn-wp-content p { 
+  margin-bottom: 1.5em; 
+}
+
 .kn-wp-content h2 {
   font-family: var(--font-display);
   font-size: 1.6rem;
@@ -40,6 +45,7 @@
   margin: 2.2em 0 0.7em;
   line-height: 1.2;
 }
+
 .kn-wp-content h3 {
   font-family: var(--font-display);
   font-size: 1.25rem;
@@ -47,6 +53,7 @@
   color: #0d0d0d;
   margin: 1.8em 0 0.6em;
 }
+
 .kn-wp-content blockquote {
   margin: 2em 0;
   padding: 1.25em 1.5em;
@@ -56,14 +63,42 @@
   color: #3d3935;
   border-radius: 0 4px 4px 0;
 }
-.kn-wp-content blockquote p { margin: 0; }
-.kn-wp-content a            { color: #dc2626; text-decoration: underline; text-underline-offset: 2px; }
-.kn-wp-content a:hover      { color: #b91c1c; }
-.kn-wp-content img          { width: 100%; height: auto; border-radius: 4px; margin: 1.5em 0; }
+
+.kn-wp-content blockquote p { 
+  margin: 0; 
+}
+
+.kn-wp-content a { 
+  color: #dc2626; 
+  text-decoration: underline; 
+  text-underline-offset: 2px; 
+}
+
+.kn-wp-content a:hover { 
+  color: #b91c1c; 
+}
+
+/* ── Content Image & Block Handling ──────────────────────────────────────── */
+.kn-wp-content img { 
+  width: 100%; 
+  height: auto; 
+  border-radius: 8px; 
+  margin: 1.5em 0; 
+}
+
 .kn-wp-content ul,
-.kn-wp-content ol           { margin: 1em 0 1.5em 1.5em; }
-.kn-wp-content li           { margin-bottom: 0.4em; }
-.kn-wp-content figure       { margin: 2em 0; }
+.kn-wp-content ol { 
+  margin: 1em 0 1.5em 1.5em; 
+}
+
+.kn-wp-content li { 
+  margin-bottom: 0.4em; 
+}
+
+.kn-wp-content figure { 
+  margin: 2em 0; 
+}
+
 .kn-wp-content figcaption {
   font-family: var(--font-ui);
   font-size: 0.75rem;
@@ -73,7 +108,7 @@
   border-left: 2px solid #dc2626;
 }
 
-/* Drop-cap */
+/* ── Drop-cap (Applies clean editorial tracking to first letter) ─────────── */
 .kn-wp-content > p:first-of-type::first-letter {
   font-family: var(--font-display);
   font-size: 4.5rem;
@@ -84,7 +119,7 @@
   color: #0d0d0d;
 }
 
-/* WordPress pull-quote block */
+/* ── WordPress pull-quote block styling ──────────────────────────────────── */
 .kn-wp-content .wp-block-pullquote {
   border-top: 4px solid #dc2626;
   border-bottom: 4px solid #dc2626;
@@ -92,6 +127,7 @@
   text-align: center;
   margin: 2.5em 0;
 }
+
 .kn-wp-content .wp-block-pullquote blockquote {
   background: transparent;
   border: none;

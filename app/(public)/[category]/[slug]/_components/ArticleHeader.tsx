@@ -11,6 +11,19 @@ import SkeletonImage from "@/app/_components/ui/SkeletonImage";
 import ArticleShareButton from "./ArticleShareButton";
 import ArticleBookmarkButton from "./ArticleBookmarkButton";
 
+// Helper function to decode common WordPress HTML entities safely
+function decodeHtmlEntities(str: string): string {
+  if (!str) return "";
+  return str
+    .replace(/&#8230;/g, "...")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8216;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"');
+}
+
 function calcReadingTime(html: string): number {
   const text = html.replace(/<[^>]+>/g, " ").trim();
   const words = text.split(/\s+/).filter((w) => w.length > 0).length;
@@ -40,7 +53,7 @@ export default function ArticleHeader({ article }: Props) {
   const lede =
     article.articleFields?.newsData?.theLede ||
     article.excerpt?.replace(/<[^>]+>/g, "") ||
-    "";
+     "";
 
   const formattedDate = pub.toLocaleDateString("en-KE", {
     year: "numeric",
@@ -49,6 +62,10 @@ export default function ArticleHeader({ article }: Props) {
   });
   const readingTime = calcReadingTime(article.content ?? "");
   const timeAgo = getTimeAgo(pub);
+
+  // Clean raw strings from entities before injecting into elements
+  const decodedTitle = decodeHtmlEntities(article.title ?? "");
+  const decodedLede = decodeHtmlEntities(lede);
 
   return (
     <header className="max-w-[1140px] mx-auto px-4 sm:px-6 pt-10 pb-8">
@@ -84,11 +101,11 @@ export default function ArticleHeader({ article }: Props) {
             fontSize: "clamp(1.85rem, 4.5vw, 3rem)",
           }}
         >
-          {article.title}
+          {decodedTitle}
         </h1>
 
         {/* ── Deck / lede ──────────────────────────────────────────────── */}
-        {lede && (
+        {decodedLede && (
           <p
             className="mb-7 pl-4 border-l-[3px] border-gray-200 italic text-gray-600 leading-relaxed"
             style={{
@@ -96,7 +113,7 @@ export default function ArticleHeader({ article }: Props) {
               fontSize: "clamp(1rem, 2vw, 1.2rem)",
             }}
           >
-            {lede}
+            {decodedLede}
           </p>
         )}
 
@@ -149,7 +166,7 @@ export default function ArticleHeader({ article }: Props) {
 
           {/* Share / bookmark actions */}
           <div className="flex items-center gap-2">
-            <ArticleShareButton title={article.title} />
+            <ArticleShareButton title={decodedTitle} />
             <ArticleBookmarkButton slug={article.slug} />
           </div>
         </div>

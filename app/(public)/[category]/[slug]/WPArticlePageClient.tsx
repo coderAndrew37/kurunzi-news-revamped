@@ -7,7 +7,6 @@ import { SportsPost, WPPostNode } from "@/lib/wordpress/types";
 import ArticleAuthorBio from "./_components/ArticleAuthorBio";
 import ArticleBackToTop from "./_components/ArticleBackToTop";
 import ArticleBody from "./_components/ArticleBody";
-import ArticleHeader from "./_components/ArticleHeader";
 import ArticleHero from "./_components/ArticleHero";
 import ArticleProgressBar from "./_components/ArticleProgressBar";
 import ArticleSidebar from "./_components/ArticleSidebar";
@@ -15,7 +14,7 @@ import ArticleSidebar from "./_components/ArticleSidebar";
 interface Props {
   article: WPPostNode;
   latestPosts: SportsPost[];
-  relatedPosts: SportsPost[]; // Same category posts
+  relatedPosts: SportsPost[];
 }
 
 export default function ArticlePageClient({
@@ -30,15 +29,22 @@ export default function ArticlePageClient({
   return (
     <article className="min-h-screen bg-[var(--paper)] text-[var(--ink)]">
       <ArticleProgressBar />
-      <ArticleHeader article={article} />
-      <ArticleHero article={article} />
 
-      <div className="kn-body-grid max-w-[1140px] mx-auto px-4 sm:px-6 pb-20">
-        <ArticleBody article={article} />
+      {/* Main Structural Wrapper Grid */}
+      <div className="kn-body-grid max-w-[1140px] mx-auto px-4 sm:px-6 pt-10 pb-20">
+        
+        {/* Left Column: Flow Content Track */}
+        <div className="min-w-0">
+          <ArticleHero article={article} />
+          <ArticleBody article={article} />
+        </div>
+
+        {/* Right Column: Sidebar Track */}
         <ArticleSidebar latestPosts={latestPosts} />
+        
       </div>
 
-      {/* Lower Section - More in this Category */}
+      {/* Bottom Section - More in this Category */}
       {relatedPosts.length > 0 && (
         <NewsSection
           title={`More in ${categoryName}`}

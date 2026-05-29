@@ -27,29 +27,61 @@ export default function ArticleBody({ article }: Props) {
     .split("</p>")
     .filter((p) => p.trim().length > 10);
 
+  // Common typography layout classes to keep both split content blocks identical
+  const proseWrapperClasses = `
+    kn-wp-content 
+    mx-auto 
+    max-w-[720px] 
+    
+    /* Tailwind v4 Typography Engine activation */
+    prose 
+    prose-gray 
+    max-w-none 
+    
+    /* Fixes in-body images/figures overflowing past the text margins */
+    [&_img]:max-w-full 
+    [&_img]:h-auto 
+    [&_img]:rounded-xl 
+    [&_img]:mx-auto
+    [&_figure]:max-w-full 
+    [&_figure]:mx-auto 
+    [&_figure]:my-6
+    
+    /* Theme styling updates for typography links and headers */
+    prose-headings:font-black
+    prose-headings:tracking-tight
+    prose-a:text-red-600 
+    hover:prose-a:text-red-700
+  `;
+
   return (
-    <main className="min-w-0">
+    <main className="min-w-0 px-4 sm:px-6">
+      {/* Top Section: First 3 Paragraphs */}
       <div
-        className="kn-wp-content"
+        className={proseWrapperClasses}
         dangerouslySetInnerHTML={{
           __html: paragraphs.slice(0, 3).join("</p>") + "</p>",
         }}
       />
 
+      {/* Inline Section Breakdown Element */}
       {relatedPosts.length > 0 && (
-        <ArticleRelatedInline relatedPosts={relatedPosts} />
+        <div className="max-w-[720px] mx-auto my-8">
+          <ArticleRelatedInline relatedPosts={relatedPosts} />
+        </div>
       )}
 
+      {/* Bottom Section: Remaining Paragraphs */}
       <div
-        className="kn-wp-content"
+        className={proseWrapperClasses}
         dangerouslySetInnerHTML={{
           __html: paragraphs.slice(3).join("</p>") + "</p>",
         }}
       />
 
-      {/* Topics / Tags */}
+      {/* Topics / Tags Box */}
       {(categories.length > 0 || tags.length > 0) && (
-        <div className="mt-14 pt-6 border-t border-gray-200">
+        <div className="max-w-[720px] mx-auto mt-14 pt-6 border-t border-gray-200">
           <p
             className="mb-3 text-[10px] font-bold tracking-[0.18em] uppercase text-gray-400"
             style={{ fontFamily: "var(--font-ui)" }}
