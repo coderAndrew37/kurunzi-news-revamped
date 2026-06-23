@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import Navbar from "../_components/wordpress/WPNavbar";
 import Footer from "../_components/wordpress/WPFooter";
 import { getNavCategories } from "@/lib/wordpress/data";
 
 const siteURL = process.env.NEXT_PUBLIC_SITE_URL!;
+
+// CHANGED for the BBC-style homepage redesign:
+//  - Added a conditional AdSense loader script. It only renders when
+//    NEXT_PUBLIC_ADSENSE_CLIENT_ID is set, so there's zero AdSense network
+//    activity (and zero console noise) until you've actually been approved
+//    and have a client ID to put there. WPAdSlot (used on the homepage)
+//    depends on this script being present once it's enabled.
+const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteURL), // Update if moving to .com or sports subdomain
@@ -79,6 +88,16 @@ export default async function PublicLayout({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {adsenseClientId && (
+        <Script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      )}
+
       <div className="min-h-screen bg-[#fdfcfb]">
         {/* Navbar - logic is now internal to the component */}
         <Navbar categories={categories} />

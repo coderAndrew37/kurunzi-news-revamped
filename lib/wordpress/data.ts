@@ -1,17 +1,21 @@
 // lib/wordpress/data.ts
 // All data-fetching functions. Import from here in pages/components.
 // Never call fetchAPI directly from pages.
+//
+// CHANGED for the BBC-style homepage redesign:
+//  - toSportsPost() now maps articleFields.featuredVideo onto SportsPost.
+//    Requires GET_SPORTS_POSTS (wp-api.ts) to request featuredVideo — see
+//    the matching diff there.
 
-import { fetchAPI, QUERIES, getNavCategories } from "./wp-api";
 import type {
-  AuthorProfile,
-  NavCategory,
-  PageInfo,
-  SitemapPostNode,
-  SportsPost,
-  TagInfo,
-  WPPostNode,
+    AuthorProfile,
+    PageInfo,
+    SitemapPostNode,
+    SportsPost,
+    TagInfo,
+    WPPostNode
 } from "./types";
+import { fetchAPI, getNavCategories, QUERIES } from "./wp-api";
 
 // Re-export getNavCategories from wp-api so consumers keep importing from data.ts
 export { getNavCategories };
@@ -36,6 +40,7 @@ function toSportsPost(post: WPPostNode): SportsPost {
       isBreaking: post.articleFields?.newsData?.isBreaking ?? false,
       theLede: post.articleFields?.newsData?.theLede ?? "",
     },
+    featuredVideo: post.articleFields?.featuredVideo ?? null,
   };
 }
 

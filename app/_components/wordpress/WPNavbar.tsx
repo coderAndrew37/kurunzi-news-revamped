@@ -179,10 +179,10 @@ export default function Navbar({
                     <Search size={20} />
                   </button>
                   <button
+                  
                     onClick={() => setMenuOpen((v) => !v)}
                     className="p-2 text-gray-500 hover:text-gray-900 transition-colors"
                     aria-label={menuOpen ? "Close menu" : "Open menu"}
-                    aria-expanded={menuOpen}
                     aria-controls="mobile-nav"
                   >
                     {menuOpen ? <X size={22} /> : <Menu size={22} />}

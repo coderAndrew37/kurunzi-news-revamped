@@ -6,6 +6,12 @@
 //  - Optional fields use `field: T | null`, never `field?: T` for GraphQL nullable fields.
 //    (GraphQL null ≠ undefined — being explicit avoids subtle runtime bugs.)
 //  - `seo` is null when WPGraphQL for RankMath plugin is not installed.
+//
+// CHANGED for the BBC-style homepage redesign:
+//  - SportsPost now carries `featuredVideo`, mirroring ArticleFields.featuredVideo.
+//    This powers the new dark "Media Feature" band — previously that field only
+//    existed on the full WPPostNode, so the lean homepage type had no way to
+//    know which posts were video posts without re-fetching full detail.
 
 // ─── ACF Field Groups ─────────────────────────────────────────────────────────
 
@@ -163,6 +169,10 @@ export interface SportsPost {
   featuredImage: string | null;
   category: string;
   newsData: NewsMetadata;
+  // Populated from articleFields.featuredVideo. Drives the homepage Media
+  // Feature band — posts with a video get pulled into that section instead
+  // of the standard category grid.
+  featuredVideo: string | null;
 }
 
 export interface NavCategory {

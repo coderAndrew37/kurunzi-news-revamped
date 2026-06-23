@@ -1,6 +1,11 @@
 // lib/wordpress/wp-api.ts
 // Core fetcher + all GraphQL query strings.
 // Only data.ts should import from here.
+//
+// CHANGED for the BBC-style homepage redesign:
+//  - GET_SPORTS_POSTS now requests articleFields.featuredVideo so the
+//    homepage can split video posts out into the new Media Feature band.
+//    Everything else in this file is unchanged from the existing build.
 
 // ─── fetchAPI ─────────────────────────────────────────────────────────────────
 
@@ -73,6 +78,7 @@ export const QUERIES = {
             newsData { isHero isBreaking theLede }
             articleCategoryType
             isHeroSlider
+            featuredVideo
           }
         }
       }
